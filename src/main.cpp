@@ -8,6 +8,7 @@
 #include "Eigen-3.3/Eigen/Core"
 #include "Eigen-3.3/Eigen/QR"
 #include "json.hpp"
+#include "spline.h"
 
 using namespace std;
 
@@ -240,6 +241,72 @@ int main() {
 
 
           	// TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
+		//double dist_inc = 0.5;
+		//for(int i = 0; i < 50; i++)
+		//{
+		//    next_x_vals.push_back(car_x+(dist_inc*i)*cos(deg2rad(car_yaw)));
+		//    next_y_vals.push_back(car_y+(dist_inc*i)*sin(deg2rad(car_yaw)));
+		//}
+		double pos_x;
+		double pos_y;
+		double angle;
+
+		int path_size = previous_path_x.size();
+
+		for(int i = 0; i < path_size; i++)
+		{
+		    next_x_vals.push_back(previous_path_x[i]);
+		    next_y_vals.push_back(previous_path_y[i]);
+		}
+
+		if(path_size == 0)
+		{
+		    pos_x = car_x;
+		    pos_y = car_y;
+		    angle = deg2rad(car_yaw);
+		}
+		else
+		{
+		    pos_x = previous_path_x[path_size-1];
+		    pos_y = previous_path_y[path_size-1];
+
+		    double pos_x2 = previous_path_x[path_size-2];
+		    double pos_y2 = previous_path_y[path_size-2];
+		    angle = atan2(pos_y-pos_y2,pos_x-pos_x2);
+		}
+
+		int next_wayp = NextWaypoint(pos_x, pos_y, angle, map_waypoints_x, map_waypoints_y);
+		double next_x_wayp = map_waypoints_x[next_wayp];
+		double next_y_wayp = map_waypoints_y[next_wayp];
+		
+
+		double dist_inc = 0.5;
+		double new_x = pos_x;
+		double new_y = pos_y;
+		std::cout << pos_x << " " << pos_y << " " << next_x_wayp << " " << next_y_wayp << std::endl;
+		double x_fact = (next_x_wayp - pos_x) / float(50 - path_size);
+		double y_fact = (next_y_wayp - pos_y) / float(50 - path_size);
+		std::cout << x_fact << " " << y_fact << std::endl;
+		for(int i = 0; i < 50-path_size; i++)
+		{
+		  
+		  //pos_x += (dist_inc)*cos(angle+(i+1)*(pi()/100));
+		  //pos_y += (dist_inc)*sin(angle+(i+1)*(pi()/100));
+		  new_x += x_fact;
+		  new_y += y_fact;
+		  next_x_vals.push_back(new_x);
+		  next_y_vals.push_back(new_y);
+		}
+		/*
+		for(int i=0;i<next_x_vals.size();i++) {
+		  std::cout << next_x_vals[i] << " ";
+		}
+		std::cout << std::endl;
+		for(int i=0;i<next_y_vals.size();i++) {
+		  std::cout << next_y_vals[i] << " ";
+		}
+		std::cout << std::endl;
+                */
           	msgJson["next_x"] = next_x_vals;
           	msgJson["next_y"] = next_y_vals;
 
