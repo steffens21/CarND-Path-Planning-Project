@@ -276,9 +276,14 @@ int main() {
 		}
 
 		int next_wayp = NextWaypoint(pos_x, pos_y, angle, map_waypoints_x, map_waypoints_y);
-		double next_x_wayp = map_waypoints_x[next_wayp];
-		double next_y_wayp = map_waypoints_y[next_wayp];
-		
+
+		// the waypoints are not necessarily on the right lane.  You have to use the dx and dy to adapt.
+		double next_y_wayp = map_waypoints_x[next_wayp] + map_waypoints_dx[next_wayp] * 6;
+		double next_y_wayp = map_waypoints_y[next_wayp] + map_waypoints_dy[next_wayp] * 6;
+
+		// TODO: limit speed, accelleration and jerk
+		// TODO: don't collide with other cars
+		// TODO: use spline for smoothing
 
 		double dist_inc = 0.5;
 		double new_x = pos_x;
