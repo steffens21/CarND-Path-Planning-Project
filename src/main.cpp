@@ -281,18 +281,31 @@ int main() {
 			 //car_yaw,
 			 //car_speed,
 			 angle,
-			 previous_path_x,
-			 previous_path_y,
-			 //end_path_s,
-			 //end_path_d,
+			 end_path_s,
+			 end_path_d,
 			 // TODO: sensor_fusion,
 			 map_waypoints_x[next_wayp],
 			 map_waypoints_y[next_wayp],
+			 map_waypoints_s[next_wayp],
 			 map_waypoints_dx[next_wayp],
 			 map_waypoints_dy[next_wayp]);
 
-        msgJson["next_x"] = ptg.next_x_vals;
-        msgJson["next_y"] = ptg.next_y_vals;
+	vector<double> next_x_vals;
+	vector<double> next_y_vals;
+
+	for(int i = max(path_size - 5, 0); i < path_size; i++){
+	  next_x_vals.push_back(previous_path_x[i]);
+	  next_y_vals.push_back(previous_path_y[i]);
+	}
+
+	for (int i=0; i<50-path_size; i++) {
+	  // TODO: use ptg.next_d_vals[i]
+	  vector<double> result = getXY(ptg.next_s_vals[i], end_path_d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+	  next_x_vals.push_back(result[0]);
+	  next_y_vals.push_back(result[1]);
+	}
+        msgJson["next_x"] = next_x_vals;
+        msgJson["next_y"] = next_y_vals;
 
         auto msg = "42[\"control\","+ msgJson.dump()+"]";
 

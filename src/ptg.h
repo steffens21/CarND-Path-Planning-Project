@@ -26,22 +26,25 @@ class PTG {
    */
   virtual ~PTG();
 
-  vector<double> next_x_vals;
-  vector<double> next_y_vals;
+  vector<double> next_s_vals;
+  vector<double> next_d_vals;
 
-  //void ProcessMeasurement(const MeasurementPackage &measurement_pack);
+  // void ProcessMeasurement(const MeasurementPackage &measurement_pack);
   vector<double> JMT(vector< double> start, vector <double> end, double T);
+
+  double poly_eval(vector<double> a, double x);
 
   void generatePath(float pos_x,
 		    float pos_y,
 		    float angle,
 		    //TODO: sensor_fusion,
-		    vector<double> previous_path_x,
-		    vector<double> previous_path_y,
-		    double map_waypoints_x,
-		    double map_waypoints_y,
-		    double map_waypoints_dx,
-		    double map_waypoints_dy);
+		    double end_path_s,
+		    double end_path_d,
+		    double next_waypoints_x,
+		    double next_waypoints_y,
+		    double next_waypoints_s,
+		    double next_waypoints_dx,
+		    double next_waypoints_dy);
   
  private:
 
