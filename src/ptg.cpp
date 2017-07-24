@@ -72,16 +72,19 @@ vector<double> PTG::JMT(vector< double> start, vector <double> end, double T) {
   return result;
 }
 
-void PTG::generatePath(float pos_x,
-		       float pos_y,
-		       float angle,
+void PTG::generatePath(double pos_x,
+		       double pos_y,
+		       double car_speed,
+		       double car_accell,
+		       double angle,
 		       double end_path_s,
 		       double end_path_d,
 		       double next_waypoints_x,
 		       double next_waypoints_y,
 		       double next_waypoints_s,
 		       double next_waypoints_dx,
-		       double next_waypoints_dy) {
+		       double next_waypoints_dy,
+		       int new_points_needed) {
 
   // TODO: Right now we let the car always drive in the middle lane.
   //       Eventually we have to use an algorithm to determine the best lane
@@ -95,26 +98,42 @@ void PTG::generatePath(float pos_x,
   // TODO: don't collide with other cars
   // TODO: use spline for smoothing
 
+  std::cout << "-------------------------" << std::endl;
   std::cout << pos_x << " " << pos_y << " " << next_x_wayp << " " << next_y_wayp << std::endl;
 
   // Use JMT
   double distance_to_point = next_waypoints_s - end_path_s;
-  std::cout << "distance_to_point " << distance_to_point << std::endl;
-  double time_to_point = distance_to_point / 25.0; // 25 m/s is about 50 m/h
-  std::cout << "time_to_point " << time_to_point << std::endl;
-  vector<double> poly_coeff = JMT( {end_path_s, 10, 0}, {next_waypoints_s, 10, 0}, time_to_point);
-  std::cout << "poly_coeff " << poly_coeff[0] << " " << poly_coeff[1] << " " << poly_coeff[2] << " " << poly_coeff[3] << " " << poly_coeff[4] << poly_coeff[5] << std::endl;
+  std::cout << "distance_to_point        " << distance_to_point << std::endl;
 
-  for(int i = 0; i < 50; i++) {
-    double t = time_to_point / 50 * i;
+  double target_speed = 10.0; // 25 m/s is about 50 m/h
+
+  double time_to_point = distance_to_point / target_speed;
+  std::cout << "time_to_point            " << time_to_point << std::endl;
+
+  std::cout << "end_path_s               " << end_path_s << std::endl;
+  std::cout << "next_waypoints_s         " << next_waypoints_s << std::endl;
+  vector<double> poly_coeff = JMT({end_path_s, car_speed, car_accell},
+				  {next_waypoints_s, target_speed, 0},
+				  time_to_point);
+  std::cout << "poly_coeff               " << poly_coeff[0] << " " << poly_coeff[1] << " " << poly_coeff[2] << " " << poly_coeff[3] << " " << poly_coeff[4] << poly_coeff[5] << std::endl;
+  
+  for(int i = 1; i <= new_points_needed; i++) {
+    double t = 0.02 * i;
     double poly_val = poly_eval(poly_coeff, t);
     next_s_vals.push_back(poly_val);
+    //next_s_vals.push_back(end_path_s + (distance_to_point / new_points_needed * i));
   }
   
     for(int i=0;i<next_s_vals.size();i++) {
       std::cout << next_s_vals[i] << " ";
     }
     std::cout << std::endl;
+
+    for(int i=1;i<next_s_vals.size();i++) {
+      std::cout << (next_s_vals[i] - next_s_vals[i-1]) / 0.02 << " ";
+    }
+    std::cout << std::endl;
+    
   /*
     for(int i=0;i<next_y_vals.size();i++) {
     std::cout << next_y_vals[i] << " ";

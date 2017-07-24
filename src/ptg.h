@@ -34,9 +34,11 @@ class PTG {
 
   double poly_eval(vector<double> a, double x);
 
-  void generatePath(float pos_x,
-		    float pos_y,
-		    float angle,
+  void generatePath(double pos_x,
+		    double pos_y,
+		    double car_speed,
+		    double car_accell,
+		    double angle,
 		    //TODO: sensor_fusion,
 		    double end_path_s,
 		    double end_path_d,
@@ -44,7 +46,8 @@ class PTG {
 		    double next_waypoints_y,
 		    double next_waypoints_s,
 		    double next_waypoints_dx,
-		    double next_waypoints_dy);
+		    double next_waypoints_dy,
+		    int new_points_needed);
   
  private:
 

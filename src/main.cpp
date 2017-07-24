@@ -227,6 +227,9 @@ int main() {
         double car_yaw = j[1]["yaw"];
         double car_speed = j[1]["speed"];
 
+	std:: cout << " CAR STATE: (x,y) , (s,d), yaw, speed" << std::endl;
+	std:: cout << " " << car_x << " " << car_y << "   " << car_s << " " << car_d << "    " << car_yaw << "   " << car_speed << std::endl;
+
         // Previous path data given to the Planner
         auto previous_path_x = j[1]["previous_path_x"];
         auto previous_path_y = j[1]["previous_path_y"];
@@ -252,20 +255,49 @@ int main() {
         double angle;
 	int path_size = previous_path_x.size();
 
+	int NBR_PRED_POINTS = 50;
+
+	double pos_speed;
+	double pos_accell;
+
         if(path_size == 0)
         {
             pos_x = car_x;
             pos_y = car_y;
             angle = deg2rad(car_yaw);
+	    vector<double> result = getFrenet(pos_x, pos_y, angle, map_waypoints_x, map_waypoints_y);
+	    end_path_s = result[0];
+	    end_path_d = result[1];
+	    //double car_accel = 0.0;
+	    pos_speed = car_speed;
+	    pos_accell = 0;
         }
         else
         {
             pos_x = previous_path_x[path_size-1];
             pos_y = previous_path_y[path_size-1];
 
-            double pos_x2 = previous_path_x[path_size-2];
-            double pos_y2 = previous_path_y[path_size-2];
-            angle = atan2(pos_y-pos_y2,pos_x-pos_x2);
+	    double pos_x2 = previous_path_x[path_size-2];
+	    double pos_y2 = previous_path_y[path_size-2];
+	    if(path_size > 1) {
+	      angle = atan2(pos_y-pos_y2,pos_x-pos_x2);
+	      pos_speed = sqrt(pow(pos_x-pos_x2, 2) + pow(pos_y-pos_y2,2)) / 0.02;
+	      pos_speed = max(25.0, pos_speed);
+	    }
+	    else {
+	      angle = deg2rad(car_yaw);
+	      pos_speed = car_speed;
+	    }
+
+	    if(path_size > 2) {
+	      double pos_x3 = previous_path_x[path_size-3];
+	      double pos_y3 = previous_path_y[path_size-3];
+	      double pos_speed2 = sqrt((pos_x2-pos_x3)*(pos_x2-pos_x3) + (pos_y2-pos_y3)*(pos_y2-pos_y3)) / 0.02;
+	      pos_accell = pos_speed2 - pos_speed;
+	    }
+	    else {
+	      pos_accell = 0;
+	    }
         }
 
 	// Create a path trajectory generator (PTG) instance
@@ -274,12 +306,18 @@ int main() {
 	// Use helper function to get next waypoint
         int next_wayp = NextWaypoint(pos_x, pos_y, angle, map_waypoints_x, map_waypoints_y);
 
+	// TODO: try to pass more points to JMT:
+	//     - maybe give current car pos: car_x, car_y etc and not at end of path.
+	//     - you will need to re-calc accell etc.
+	//
+	
 	ptg.generatePath(pos_x,
 			 pos_y,
 			 //car_s, 
 			 //car_d,
 			 //car_yaw,
-			 //car_speed,
+			 pos_speed,
+			 pos_accell,
 			 angle,
 			 end_path_s,
 			 end_path_d,
@@ -288,21 +326,34 @@ int main() {
 			 map_waypoints_y[next_wayp],
 			 map_waypoints_s[next_wayp],
 			 map_waypoints_dx[next_wayp],
-			 map_waypoints_dy[next_wayp]);
+			 map_waypoints_dy[next_wayp],
+			 NBR_PRED_POINTS - path_size);
 
 	vector<double> next_x_vals;
 	vector<double> next_y_vals;
 
-	for(int i = max(path_size - 5, 0); i < path_size; i++){
+	for(int i = 0; i < path_size; i++){
 	  next_x_vals.push_back(previous_path_x[i]);
 	  next_y_vals.push_back(previous_path_y[i]);
 	}
 
-	for (int i=0; i<50-path_size; i++) {
+	std::cout << "path_size " << path_size << std::endl;
+	for (int i=0; i < ptg.next_s_vals.size(); i++) {
 	  // TODO: use ptg.next_d_vals[i]
 	  vector<double> result = getXY(ptg.next_s_vals[i], end_path_d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+	  if (i > 0 && result[0] == next_x_vals[-1]) {
+	    continue;
+	  }
 	  next_x_vals.push_back(result[0]);
 	  next_y_vals.push_back(result[1]);
+	  //std::cout << result[0] << " " << result[1] << std::endl;
+	}
+	std::cout << "pred length " << next_x_vals.size() << std::endl;
+	for(int i=0;i<next_x_vals.size();i++) {
+	  std::cout << "     *** " << next_x_vals[i] << " " << next_y_vals[i] << " " << std::endl;
+	  if (i>0) {
+	  std::cout << "        +++ " << sqrt(pow(next_x_vals[i]-next_x_vals[i-1], 2) + pow(next_y_vals[i] - next_y_vals[i-1], 2)) / 0.02  << std::endl;
+	  }
 	}
         msgJson["next_x"] = next_x_vals;
         msgJson["next_y"] = next_y_vals;
