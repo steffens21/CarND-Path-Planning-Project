@@ -6,6 +6,7 @@
 #include <thread>
 #include <vector>
 #include <cmath>
+#include <algorithm> 
 #include "Eigen-3.3/Eigen/Core"
 #include "Eigen-3.3/Eigen/QR"
 #include "json.hpp"
@@ -143,8 +144,12 @@ vector<double> getXY(double s, double d, vector<double> maps_s, vector<double> m
     while(s > maps_s[prev_wp+1] && (prev_wp < (int)(maps_s.size()-1) ))
     {
         prev_wp++;
+	//std::cout << "up" << std::endl;
     }
-
+    if (prev_wp == -1) {
+      prev_wp = 0;
+    }
+    
     int wp2 = (prev_wp+1)%maps_x.size();
 
     double heading = atan2((maps_y[wp2]-maps_y[prev_wp]),(maps_x[wp2]-maps_x[prev_wp]));
@@ -158,6 +163,8 @@ vector<double> getXY(double s, double d, vector<double> maps_s, vector<double> m
 
     double x = seg_x + d*cos(perp_heading);
     double y = seg_y + d*sin(perp_heading);
+
+    std::cout << x << " " << y << " " << heading << " " << perp_heading << " " << prev_wp << std::endl;
 
     return {x,y};
 
@@ -259,17 +266,21 @@ int main() {
 
 	double pos_speed;
 	double pos_accell;
+	double pos_x2;
+	double pos_y2;
 
         if(path_size == 0)
         {
             pos_x = car_x;
             pos_y = car_y;
+	    pos_x2 = pos_x;
+	    pos_y2 = pos_y;
             angle = deg2rad(car_yaw);
 	    vector<double> result = getFrenet(pos_x, pos_y, angle, map_waypoints_x, map_waypoints_y);
 	    end_path_s = result[0];
 	    end_path_d = result[1];
 	    //double car_accel = 0.0;
-	    pos_speed = car_speed;
+	    pos_speed = car_speed * 0.44704;
 	    pos_accell = 0;
         }
         else
@@ -277,16 +288,16 @@ int main() {
             pos_x = previous_path_x[path_size-1];
             pos_y = previous_path_y[path_size-1];
 
-	    double pos_x2 = previous_path_x[path_size-2];
-	    double pos_y2 = previous_path_y[path_size-2];
 	    if(path_size > 1) {
+	      pos_x2 = previous_path_x[path_size-2];
+	      pos_y2 = previous_path_y[path_size-2];
 	      angle = atan2(pos_y-pos_y2,pos_x-pos_x2);
 	      pos_speed = sqrt(pow(pos_x-pos_x2, 2) + pow(pos_y-pos_y2,2)) / 0.02;
-	      pos_speed = max(25.0, pos_speed);
+	      pos_speed = min(25.0, pos_speed);
 	    }
 	    else {
 	      angle = deg2rad(car_yaw);
-	      pos_speed = car_speed;
+	      pos_speed = car_speed * 0.44704;
 	    }
 
 	    if(path_size > 2) {
@@ -306,6 +317,42 @@ int main() {
 	// Use helper function to get next waypoint
         int next_wayp = NextWaypoint(pos_x, pos_y, angle, map_waypoints_x, map_waypoints_y);
 
+	// generate finer devision of waypoints using splines.
+	// this should reduce the jerk introudced by getXY
+	vector<double> map_waypoints_x_mod;
+	vector<double> map_waypoints_y_mod;
+	vector<double> map_waypoints_s_mod;
+	tk::spline spline_s_x;
+	tk::spline spline_s_y;
+	vector<double> map_waypoints_x_sel;
+	vector<double> map_waypoints_y_sel;
+	vector<double> map_waypoints_s_sel;
+	for (int i = std::max(next_wayp - 2,0); i < std::min(next_wayp + 2, int(map_waypoints_x.size())); i++) {
+	  map_waypoints_x_sel.push_back(map_waypoints_x[i]);
+	  map_waypoints_y_sel.push_back(map_waypoints_y[i]);
+	  map_waypoints_s_sel.push_back(map_waypoints_s[i]);
+	}
+
+	std::cout << "waypoint selection" << std::endl;
+	for (int j=0; j<map_waypoints_x_sel.size(); j++) {
+	  std::cout << map_waypoints_x_sel[j] << "  " << map_waypoints_y_sel[j] << "  " << map_waypoints_s_sel[j] << std::endl;
+	}
+	
+	spline_s_x.set_points(map_waypoints_s_sel,
+			      map_waypoints_x_sel);
+	spline_s_y.set_points(map_waypoints_s_sel,
+			      map_waypoints_y_sel);
+	for (int i = 0; i < 60; i++) {
+	  float s_val = map_waypoints_s_sel[0] + i * 3;
+	  map_waypoints_x_mod.push_back(spline_s_x(s_val));
+	  map_waypoints_y_mod.push_back(spline_s_y(s_val));
+	  map_waypoints_s_mod.push_back(s_val);
+	}
+
+	std::cout << "waypoint spline sample" << std::endl;
+	for (int j=0; j<map_waypoints_x_mod.size(); j++) {
+	  std::cout << map_waypoints_x_mod[j] << "  " << map_waypoints_y_mod[j] << "  " << map_waypoints_s_mod[j] << std::endl;
+	}
 	// TODO: try to pass more points to JMT:
 	//     - maybe give current car pos: car_x, car_y etc and not at end of path.
 	//     - you will need to re-calc accell etc.
@@ -340,7 +387,11 @@ int main() {
 	std::cout << "path_size " << path_size << std::endl;
 	for (int i=0; i < ptg.next_s_vals.size(); i++) {
 	  // TODO: use ptg.next_d_vals[i]
-	  vector<double> result = getXY(ptg.next_s_vals[i], end_path_d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+	  vector<double> result = getXY(ptg.next_s_vals[i],
+					end_path_d,
+					map_waypoints_s_mod,
+					map_waypoints_x_mod,
+					map_waypoints_y_mod);
 	  if (i > 0 && result[0] == next_x_vals[-1]) {
 	    continue;
 	  }
@@ -350,9 +401,14 @@ int main() {
 	}
 	std::cout << "pred length " << next_x_vals.size() << std::endl;
 	for(int i=0;i<next_x_vals.size();i++) {
-	  std::cout << "     *** " << next_x_vals[i] << " " << next_y_vals[i] << " " << std::endl;
+	  std::cout << "     *** " << next_x_vals[i]
+		    << " " << next_y_vals[i]
+		    << " " << std::endl;
 	  if (i>0) {
-	  std::cout << "        +++ " << sqrt(pow(next_x_vals[i]-next_x_vals[i-1], 2) + pow(next_y_vals[i] - next_y_vals[i-1], 2)) / 0.02  << std::endl;
+	    double speed = sqrt(pow(next_x_vals[i]-next_x_vals[i-1], 2) + pow(next_y_vals[i] - next_y_vals[i-1], 2)) / 0.02;
+	    if (speed > 25) { std::cout << "BAD!!! " << i << " " << ptg.next_s_vals[i] << " " << ptg.next_s_vals[i-1] << " " << end_path_d << std::endl; }
+	    if (speed < 5) { std::cout << "BAD!!! " << i << std::endl; }
+	    std::cout << "                                        " << speed  << std::endl;
 	  }
 	}
         msgJson["next_x"] = next_x_vals;

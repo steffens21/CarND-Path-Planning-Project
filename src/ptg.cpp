@@ -105,7 +105,7 @@ void PTG::generatePath(double pos_x,
   double distance_to_point = next_waypoints_s - end_path_s;
   std::cout << "distance_to_point        " << distance_to_point << std::endl;
 
-  double target_speed = 10.0; // 25 m/s is about 50 m/h
+  double target_speed = 15.0; // 25 m/s is about 50 m/h
 
   double time_to_point = distance_to_point / target_speed;
   std::cout << "time_to_point            " << time_to_point << std::endl;
@@ -120,6 +120,9 @@ void PTG::generatePath(double pos_x,
   for(int i = 1; i <= new_points_needed; i++) {
     double t = 0.02 * i;
     double poly_val = poly_eval(poly_coeff, t);
+    if (poly_val > next_waypoints_s) {
+      continue;
+    }
     next_s_vals.push_back(poly_val);
     //next_s_vals.push_back(end_path_s + (distance_to_point / new_points_needed * i));
   }
