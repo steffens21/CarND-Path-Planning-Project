@@ -112,11 +112,21 @@ void PTG::generatePath(double pos_x,
 
   std::cout << "end_path_s               " << end_path_s << std::endl;
   std::cout << "next_waypoints_s         " << next_waypoints_s << std::endl;
+
   vector<double> poly_coeff = JMT({end_path_s, car_speed, car_accell},
 				  {next_waypoints_s, target_speed, 0},
 				  time_to_point);
-  std::cout << "poly_coeff               " << poly_coeff[0] << " " << poly_coeff[1] << " " << poly_coeff[2] << " " << poly_coeff[3] << " " << poly_coeff[4] << poly_coeff[5] << std::endl;
-  
+
+  /*
+  std::cout << "poly_coeff               "
+	    << poly_coeff[0]
+	    << " " << poly_coeff[1]
+	    << " " << poly_coeff[2]
+	    << " " << poly_coeff[3]
+	    << " " << poly_coeff[4]
+	    << poly_coeff[5] << std::endl;
+  */
+
   for(int i = 1; i <= new_points_needed; i++) {
     double t = 0.02 * i;
     double poly_val = poly_eval(poly_coeff, t);
@@ -127,16 +137,16 @@ void PTG::generatePath(double pos_x,
     //next_s_vals.push_back(end_path_s + (distance_to_point / new_points_needed * i));
   }
   
-    for(int i=0;i<next_s_vals.size();i++) {
+  for(int i=0;i<next_s_vals.size();i++) {
       std::cout << next_s_vals[i] << " ";
-    }
-    std::cout << std::endl;
+  }
+  std::cout << std::endl;
 
-    for(int i=1;i<next_s_vals.size();i++) {
-      std::cout << (next_s_vals[i] - next_s_vals[i-1]) / 0.02 << " ";
-    }
-    std::cout << std::endl;
-    
+  for(int i=1;i<next_s_vals.size();i++) {
+    std::cout << (next_s_vals[i] - next_s_vals[i-1]) / 0.02 << " ";
+  }
+  std::cout << std::endl;
+
   /*
     for(int i=0;i<next_y_vals.size();i++) {
     std::cout << next_y_vals[i] << " ";

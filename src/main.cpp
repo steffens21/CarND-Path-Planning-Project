@@ -6,7 +6,8 @@
 #include <thread>
 #include <vector>
 #include <cmath>
-#include <algorithm> 
+#include <algorithm>
+#include <math.h>
 #include "Eigen-3.3/Eigen/Core"
 #include "Eigen-3.3/Eigen/QR"
 #include "json.hpp"
@@ -147,6 +148,7 @@ vector<double> getXY(double s, double d, vector<double> maps_s, vector<double> m
 	//std::cout << "up" << std::endl;
     }
     if (prev_wp == -1) {
+      std::cout << "strange situation " << s << " " << maps_s[prev_wp+1] << std::endl;
       prev_wp = 0;
     }
     
@@ -164,7 +166,7 @@ vector<double> getXY(double s, double d, vector<double> maps_s, vector<double> m
     double x = seg_x + d*cos(perp_heading);
     double y = seg_y + d*sin(perp_heading);
 
-    std::cout << x << " " << y << " " << heading << " " << perp_heading << " " << prev_wp << std::endl;
+    //std::cout << x << " " << y << " " << heading << " " << perp_heading << " " << prev_wp << std::endl;
 
     return {x,y};
 
@@ -262,7 +264,7 @@ int main() {
         double angle;
 	int path_size = previous_path_x.size();
 
-	int NBR_PRED_POINTS = 50;
+	int NBR_PRED_POINTS = 70;
 
 	double pos_speed;
 	double pos_accell;
@@ -315,7 +317,8 @@ int main() {
 	PTG ptg;
 
 	// Use helper function to get next waypoint
-        int next_wayp = NextWaypoint(pos_x, pos_y, angle, map_waypoints_x, map_waypoints_y);
+	int next_wayp = NextWaypoint(car_x, car_y, deg2rad(car_yaw), map_waypoints_x, map_waypoints_y);
+        int pos_next_wayp = NextWaypoint(pos_x, pos_y, angle, map_waypoints_x, map_waypoints_y);
 
 	// generate finer devision of waypoints using splines.
 	// this should reduce the jerk introudced by getXY
@@ -327,32 +330,52 @@ int main() {
 	vector<double> map_waypoints_x_sel;
 	vector<double> map_waypoints_y_sel;
 	vector<double> map_waypoints_s_sel;
-	for (int i = std::max(next_wayp - 2,0); i < std::min(next_wayp + 2, int(map_waypoints_x.size())); i++) {
+	int start_wayp;
+	int end_wayp;
+	if (next_wayp == 0) {
+	  start_wayp = 0;
+	  end_wayp = 4;
+	} else if (next_wayp == map_waypoints_x.size()) {
+	  start_wayp = next_wayp - 1;
+	  end_wayp = next_wayp;
+	} else {
+	  start_wayp = next_wayp - 1;
+	  end_wayp = next_wayp + 3;
+	}
+	
+	for (int i = start_wayp; i < end_wayp; i++) {
 	  map_waypoints_x_sel.push_back(map_waypoints_x[i]);
 	  map_waypoints_y_sel.push_back(map_waypoints_y[i]);
 	  map_waypoints_s_sel.push_back(map_waypoints_s[i]);
 	}
 
+	/*
 	std::cout << "waypoint selection" << std::endl;
 	for (int j=0; j<map_waypoints_x_sel.size(); j++) {
-	  std::cout << map_waypoints_x_sel[j] << "  " << map_waypoints_y_sel[j] << "  " << map_waypoints_s_sel[j] << std::endl;
+	  std::cout << map_waypoints_x_sel[j] << "  "
+		    << map_waypoints_y_sel[j] << "  "
+		    << map_waypoints_s_sel[j] << std::endl;
 	}
-	
+	*/
 	spline_s_x.set_points(map_waypoints_s_sel,
 			      map_waypoints_x_sel);
 	spline_s_y.set_points(map_waypoints_s_sel,
 			      map_waypoints_y_sel);
-	for (int i = 0; i < 60; i++) {
-	  float s_val = map_waypoints_s_sel[0] + i * 3;
+	int samples = 40;
+	float step_s = abs(map_waypoints_s_sel[-1] - map_waypoints_s_sel[0]) / float(samples);
+	for (int i = 0; i < samples; i++) {
+	  float s_val = map_waypoints_s_sel[0] + i * step_s;
 	  map_waypoints_x_mod.push_back(spline_s_x(s_val));
 	  map_waypoints_y_mod.push_back(spline_s_y(s_val));
 	  map_waypoints_s_mod.push_back(s_val);
 	}
 
+	/*
 	std::cout << "waypoint spline sample" << std::endl;
 	for (int j=0; j<map_waypoints_x_mod.size(); j++) {
 	  std::cout << map_waypoints_x_mod[j] << "  " << map_waypoints_y_mod[j] << "  " << map_waypoints_s_mod[j] << std::endl;
 	}
+	*/
 	// TODO: try to pass more points to JMT:
 	//     - maybe give current car pos: car_x, car_y etc and not at end of path.
 	//     - you will need to re-calc accell etc.
@@ -369,11 +392,11 @@ int main() {
 			 end_path_s,
 			 end_path_d,
 			 // TODO: sensor_fusion,
-			 map_waypoints_x[next_wayp],
-			 map_waypoints_y[next_wayp],
-			 map_waypoints_s[next_wayp],
-			 map_waypoints_dx[next_wayp],
-			 map_waypoints_dy[next_wayp],
+			 map_waypoints_x[pos_next_wayp],
+			 map_waypoints_y[pos_next_wayp],
+			 map_waypoints_s[pos_next_wayp],
+			 map_waypoints_dx[pos_next_wayp],
+			 map_waypoints_dy[pos_next_wayp],
 			 NBR_PRED_POINTS - path_size);
 
 	vector<double> next_x_vals;
@@ -384,7 +407,7 @@ int main() {
 	  next_y_vals.push_back(previous_path_y[i]);
 	}
 
-	std::cout << "path_size " << path_size << std::endl;
+	//std::cout << "path_size " << path_size << std::endl;
 	for (int i=0; i < ptg.next_s_vals.size(); i++) {
 	  // TODO: use ptg.next_d_vals[i]
 	  vector<double> result = getXY(ptg.next_s_vals[i],
@@ -392,15 +415,16 @@ int main() {
 					map_waypoints_s_mod,
 					map_waypoints_x_mod,
 					map_waypoints_y_mod);
-	  if (i > 0 && result[0] == next_x_vals[-1]) {
+	  if (result[0] == next_x_vals[path_size-1]) {
 	    continue;
 	  }
 	  next_x_vals.push_back(result[0]);
 	  next_y_vals.push_back(result[1]);
 	  //std::cout << result[0] << " " << result[1] << std::endl;
 	}
+	/*
 	std::cout << "pred length " << next_x_vals.size() << std::endl;
-	for(int i=0;i<next_x_vals.size();i++) {
+	for(int i=0; i<next_x_vals.size();i++) {
 	  std::cout << "     *** " << next_x_vals[i]
 		    << " " << next_y_vals[i]
 		    << " " << std::endl;
@@ -411,6 +435,7 @@ int main() {
 	    std::cout << "                                        " << speed  << std::endl;
 	  }
 	}
+	*/
         msgJson["next_x"] = next_x_vals;
         msgJson["next_y"] = next_y_vals;
 
