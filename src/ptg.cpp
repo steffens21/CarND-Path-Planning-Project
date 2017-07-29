@@ -153,6 +153,7 @@ void PTG::generatePath(double pos_x,
     }
     std::cout << std::endl;
   */
+  //std::cout << "ptg done" << std::endl;
   
 }
 

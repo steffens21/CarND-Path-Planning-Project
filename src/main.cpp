@@ -140,6 +140,7 @@ vector<double> getFrenet(double x, double y, double theta, vector<double> maps_x
 // Transform from Frenet s,d coordinates to Cartesian x,y
 vector<double> getXY(double s, double d, vector<double> maps_s, vector<double> maps_x, vector<double> maps_y)
 {
+
     int prev_wp = -1;
 
     while(s > maps_s[prev_wp+1] && (prev_wp < (int)(maps_s.size()-1) ))
@@ -148,25 +149,62 @@ vector<double> getXY(double s, double d, vector<double> maps_s, vector<double> m
 	//std::cout << "up" << std::endl;
     }
     if (prev_wp == -1) {
-      std::cout << "strange situation " << s << " " << maps_s[prev_wp+1] << std::endl;
+      //std::cout << "strange situation " << s << " " << maps_s[prev_wp+1] << std::endl;
       prev_wp = 0;
     }
+
+    // interpolate between wp3 and prev_wp
+    int wp2 = (prev_wp + 1) % maps_x.size();
+    int wp3 = (wp2 + 1) % maps_x.size();
+
+    //std::cout << "before spline" << std::endl;
     
-    int wp2 = (prev_wp+1)%maps_x.size();
+    tk::spline spline_s_x;
+    tk::spline spline_s_y;
+    vector<double> maps_x_sel = {maps_x[prev_wp], maps_x[wp2], maps_x[wp3]};
+    vector<double> maps_y_sel = {maps_y[prev_wp], maps_y[wp2], maps_y[wp3]};
+    vector<double> maps_s_sel = {maps_s[prev_wp], maps_s[wp2], maps_s[wp3]};
+    vector<double> maps_x_mod;
+    vector<double> maps_y_mod;
+    vector<double> maps_s_mod;
+      
 
-    double heading = atan2((maps_y[wp2]-maps_y[prev_wp]),(maps_x[wp2]-maps_x[prev_wp]));
+    spline_s_x.set_points(maps_s_sel,
+			  maps_x_sel);
+    spline_s_y.set_points(maps_s_sel,
+			  maps_y_sel);
+    int samples = 20;
+    float step_s = abs(maps_s_sel[-1] - maps_s_sel[0]) / float(samples);
+    for (int i = 0; i < samples; i++) {
+      float s_val = maps_s_sel[0] + i * step_s;
+      maps_x_mod.push_back(spline_s_x(s_val));
+      maps_y_mod.push_back(spline_s_y(s_val));
+      maps_s_mod.push_back(s_val);
+    }
+
+    //std::cout << "after spline" << std::endl;
+    
+    int prev_wp_mod = -1;
+    while(s > maps_s_mod[prev_wp_mod+1] && (prev_wp_mod < (int)(maps_s_mod.size()-1) ))
+    {
+        prev_wp_mod++;
+    }
+    int wp2_mod = (prev_wp_mod + 1) % maps_x_mod.size(); // the modulus should never be applied
+    
+
+    double heading = atan2((maps_y_mod[wp2_mod]-maps_y_mod[prev_wp_mod]),(maps_x_mod[wp2_mod]-maps_x_mod[prev_wp_mod]));
     // the x,y,s along the segment
-    double seg_s = (s-maps_s[prev_wp]);
+    double seg_s = (s - maps_s_mod[prev_wp_mod]);
 
-    double seg_x = maps_x[prev_wp]+seg_s*cos(heading);
-    double seg_y = maps_y[prev_wp]+seg_s*sin(heading);
+    double seg_x = maps_x_mod[prev_wp_mod] + seg_s * cos(heading);
+    double seg_y = maps_y_mod[prev_wp_mod] + seg_s * sin(heading);
 
-    double perp_heading = heading-pi()/2;
+    double perp_heading = heading - pi()/2;
 
-    double x = seg_x + d*cos(perp_heading);
-    double y = seg_y + d*sin(perp_heading);
+    double x = seg_x + d * cos(perp_heading);
+    double y = seg_y + d * sin(perp_heading);
 
-    //std::cout << x << " " << y << " " << heading << " " << perp_heading << " " << prev_wp << std::endl;
+    //std::cout << "end getXY" << std::endl;
 
     return {x,y};
 
@@ -264,7 +302,7 @@ int main() {
         double angle;
 	int path_size = previous_path_x.size();
 
-	int NBR_PRED_POINTS = 70;
+	int NBR_PRED_POINTS = 50;
 
 	double pos_speed;
 	double pos_accell;
@@ -320,6 +358,7 @@ int main() {
 	int next_wayp = NextWaypoint(car_x, car_y, deg2rad(car_yaw), map_waypoints_x, map_waypoints_y);
         int pos_next_wayp = NextWaypoint(pos_x, pos_y, angle, map_waypoints_x, map_waypoints_y);
 
+	/*
 	// generate finer devision of waypoints using splines.
 	// this should reduce the jerk introudced by getXY
 	vector<double> map_waypoints_x_mod;
@@ -332,23 +371,23 @@ int main() {
 	vector<double> map_waypoints_s_sel;
 	int start_wayp;
 	int end_wayp;
-	if (next_wayp == 0) {
+	if (pos_next_wayp == 0) {
 	  start_wayp = 0;
-	  end_wayp = 4;
-	} else if (next_wayp == map_waypoints_x.size()) {
-	  start_wayp = next_wayp - 1;
-	  end_wayp = next_wayp;
+	  end_wayp = 2;
+	} else if (pos_next_wayp == map_waypoints_x.size()) {
+	  start_wayp = pos_next_wayp - 1;
+	  end_wayp = pos_next_wayp;
 	} else {
-	  start_wayp = next_wayp - 1;
-	  end_wayp = next_wayp + 3;
+	  start_wayp = pos_next_wayp - 1;
+	  end_wayp = pos_next_wayp + 1;
 	}
-	
+
 	for (int i = start_wayp; i < end_wayp; i++) {
 	  map_waypoints_x_sel.push_back(map_waypoints_x[i]);
 	  map_waypoints_y_sel.push_back(map_waypoints_y[i]);
 	  map_waypoints_s_sel.push_back(map_waypoints_s[i]);
 	}
-
+	*/
 	/*
 	std::cout << "waypoint selection" << std::endl;
 	for (int j=0; j<map_waypoints_x_sel.size(); j++) {
@@ -357,6 +396,7 @@ int main() {
 		    << map_waypoints_s_sel[j] << std::endl;
 	}
 	*/
+	/*
 	spline_s_x.set_points(map_waypoints_s_sel,
 			      map_waypoints_x_sel);
 	spline_s_y.set_points(map_waypoints_s_sel,
@@ -369,7 +409,7 @@ int main() {
 	  map_waypoints_y_mod.push_back(spline_s_y(s_val));
 	  map_waypoints_s_mod.push_back(s_val);
 	}
-
+	*/
 	/*
 	std::cout << "waypoint spline sample" << std::endl;
 	for (int j=0; j<map_waypoints_x_mod.size(); j++) {
@@ -410,12 +450,13 @@ int main() {
 	//std::cout << "path_size " << path_size << std::endl;
 	for (int i=0; i < ptg.next_s_vals.size(); i++) {
 	  // TODO: use ptg.next_d_vals[i]
+
 	  vector<double> result = getXY(ptg.next_s_vals[i],
 					end_path_d,
-					map_waypoints_s_mod,
-					map_waypoints_x_mod,
-					map_waypoints_y_mod);
-	  if (result[0] == next_x_vals[path_size-1]) {
+					map_waypoints_s,
+					map_waypoints_x,
+					map_waypoints_y);
+	  if (next_x_vals.size() > 0 && result[0] == next_x_vals[path_size-1]) {
 	    continue;
 	  }
 	  next_x_vals.push_back(result[0]);
