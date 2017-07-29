@@ -158,28 +158,39 @@ vector<double> getXY(double s, double d, vector<double> maps_s, vector<double> m
     int wp3 = (wp2 + 1) % maps_x.size();
 
     //std::cout << "before spline" << std::endl;
+
     
     tk::spline spline_s_x;
     tk::spline spline_s_y;
     vector<double> maps_x_sel = {maps_x[prev_wp], maps_x[wp2], maps_x[wp3]};
     vector<double> maps_y_sel = {maps_y[prev_wp], maps_y[wp2], maps_y[wp3]};
     vector<double> maps_s_sel = {maps_s[prev_wp], maps_s[wp2], maps_s[wp3]};
+    
     vector<double> maps_x_mod;
     vector<double> maps_y_mod;
     vector<double> maps_s_mod;
-      
 
+    
     spline_s_x.set_points(maps_s_sel,
 			  maps_x_sel);
     spline_s_y.set_points(maps_s_sel,
 			  maps_y_sel);
-    int samples = 20;
+    
+    int samples = 40;
     float step_s = abs(maps_s_sel[-1] - maps_s_sel[0]) / float(samples);
+    //float step_s = abs(maps_s[wp3] - maps_s[prev_wp]) / float(samples);
+    //float step_x = abs(maps_x[wp3] - maps_x[prev_wp]) / float(samples);
+    //float step_y = abs(maps_y[wp3] - maps_y[prev_wp]) / float(samples);
     for (int i = 0; i < samples; i++) {
+      //maps_s_mod.push_back( maps_s[prev_wp] + i * step_s );
+      //maps_x_mod.push_back( maps_x[prev_wp] + i * step_x );
+      //maps_y_mod.push_back( maps_y[prev_wp] + i * step_y );
+      
       float s_val = maps_s_sel[0] + i * step_s;
       maps_x_mod.push_back(spline_s_x(s_val));
       maps_y_mod.push_back(spline_s_y(s_val));
       maps_s_mod.push_back(s_val);
+      
     }
 
     //std::cout << "after spline" << std::endl;
@@ -357,69 +368,6 @@ int main() {
 	// Use helper function to get next waypoint
 	int next_wayp = NextWaypoint(car_x, car_y, deg2rad(car_yaw), map_waypoints_x, map_waypoints_y);
         int pos_next_wayp = NextWaypoint(pos_x, pos_y, angle, map_waypoints_x, map_waypoints_y);
-
-	/*
-	// generate finer devision of waypoints using splines.
-	// this should reduce the jerk introudced by getXY
-	vector<double> map_waypoints_x_mod;
-	vector<double> map_waypoints_y_mod;
-	vector<double> map_waypoints_s_mod;
-	tk::spline spline_s_x;
-	tk::spline spline_s_y;
-	vector<double> map_waypoints_x_sel;
-	vector<double> map_waypoints_y_sel;
-	vector<double> map_waypoints_s_sel;
-	int start_wayp;
-	int end_wayp;
-	if (pos_next_wayp == 0) {
-	  start_wayp = 0;
-	  end_wayp = 2;
-	} else if (pos_next_wayp == map_waypoints_x.size()) {
-	  start_wayp = pos_next_wayp - 1;
-	  end_wayp = pos_next_wayp;
-	} else {
-	  start_wayp = pos_next_wayp - 1;
-	  end_wayp = pos_next_wayp + 1;
-	}
-
-	for (int i = start_wayp; i < end_wayp; i++) {
-	  map_waypoints_x_sel.push_back(map_waypoints_x[i]);
-	  map_waypoints_y_sel.push_back(map_waypoints_y[i]);
-	  map_waypoints_s_sel.push_back(map_waypoints_s[i]);
-	}
-	*/
-	/*
-	std::cout << "waypoint selection" << std::endl;
-	for (int j=0; j<map_waypoints_x_sel.size(); j++) {
-	  std::cout << map_waypoints_x_sel[j] << "  "
-		    << map_waypoints_y_sel[j] << "  "
-		    << map_waypoints_s_sel[j] << std::endl;
-	}
-	*/
-	/*
-	spline_s_x.set_points(map_waypoints_s_sel,
-			      map_waypoints_x_sel);
-	spline_s_y.set_points(map_waypoints_s_sel,
-			      map_waypoints_y_sel);
-	int samples = 40;
-	float step_s = abs(map_waypoints_s_sel[-1] - map_waypoints_s_sel[0]) / float(samples);
-	for (int i = 0; i < samples; i++) {
-	  float s_val = map_waypoints_s_sel[0] + i * step_s;
-	  map_waypoints_x_mod.push_back(spline_s_x(s_val));
-	  map_waypoints_y_mod.push_back(spline_s_y(s_val));
-	  map_waypoints_s_mod.push_back(s_val);
-	}
-	*/
-	/*
-	std::cout << "waypoint spline sample" << std::endl;
-	for (int j=0; j<map_waypoints_x_mod.size(); j++) {
-	  std::cout << map_waypoints_x_mod[j] << "  " << map_waypoints_y_mod[j] << "  " << map_waypoints_s_mod[j] << std::endl;
-	}
-	*/
-	// TODO: try to pass more points to JMT:
-	//     - maybe give current car pos: car_x, car_y etc and not at end of path.
-	//     - you will need to re-calc accell etc.
-	//
 	
 	ptg.generatePath(pos_x,
 			 pos_y,
@@ -463,7 +411,7 @@ int main() {
 	  next_y_vals.push_back(result[1]);
 	  //std::cout << result[0] << " " << result[1] << std::endl;
 	}
-	/*
+
 	std::cout << "pred length " << next_x_vals.size() << std::endl;
 	for(int i=0; i<next_x_vals.size();i++) {
 	  std::cout << "     *** " << next_x_vals[i]
@@ -476,7 +424,7 @@ int main() {
 	    std::cout << "                                        " << speed  << std::endl;
 	  }
 	}
-	*/
+
         msgJson["next_x"] = next_x_vals;
         msgJson["next_y"] = next_y_vals;
 

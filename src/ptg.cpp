@@ -99,19 +99,19 @@ void PTG::generatePath(double pos_x,
   // TODO: use spline for smoothing
 
   std::cout << "-------------------------" << std::endl;
-  std::cout << pos_x << " " << pos_y << " " << next_x_wayp << " " << next_y_wayp << std::endl;
+  //std::cout << pos_x << " " << pos_y << " " << next_x_wayp << " " << next_y_wayp << std::endl;
 
   // Use JMT
   double distance_to_point = next_waypoints_s - end_path_s;
-  std::cout << "distance_to_point        " << distance_to_point << std::endl;
+  //std::cout << "distance_to_point        " << distance_to_point << std::endl;
 
   double target_speed = 15.0; // 25 m/s is about 50 m/h
 
   double time_to_point = distance_to_point / target_speed;
-  std::cout << "time_to_point            " << time_to_point << std::endl;
+  //std::cout << "time_to_point            " << time_to_point << std::endl;
 
-  std::cout << "end_path_s               " << end_path_s << std::endl;
-  std::cout << "next_waypoints_s         " << next_waypoints_s << std::endl;
+  //std::cout << "end_path_s               " << end_path_s << std::endl;
+  //std::cout << "next_waypoints_s         " << next_waypoints_s << std::endl;
 
   vector<double> poly_coeff = JMT({end_path_s, car_speed, car_accell},
 				  {next_waypoints_s, target_speed, 0},
@@ -129,7 +129,8 @@ void PTG::generatePath(double pos_x,
 
   for(int i = 1; i <= new_points_needed; i++) {
     double t = 0.02 * i;
-    double poly_val = poly_eval(poly_coeff, t);
+    //double poly_val = poly_eval(poly_coeff, t);
+    double poly_val = end_path_s + t * distance_to_point / time_to_point;  // brute force, no accell or jerk minimizing
     if (poly_val > next_waypoints_s) {
       continue;
     }

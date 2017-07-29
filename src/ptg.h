@@ -30,7 +30,7 @@ class PTG {
   vector<double> next_d_vals;
 
   // void ProcessMeasurement(const MeasurementPackage &measurement_pack);
-  vector<double> JMT(vector< double> start, vector <double> end, double T);
+  vector<double> JMT(vector<double> start, vector<double> end, double T);
 
   double poly_eval(vector<double> a, double x);
 
