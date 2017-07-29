@@ -20,3 +20,12 @@ vector<double> Vehicle::state_in(double t) {
   new_state.push_back(state[5]);
   return new_state;
 }
+
+void Vehicle::log_state() {
+  std::cout << state[0] << " "
+	    << state[1] << " "
+	    << state[2] << " "
+	    << state[3] << " "
+	    << state[4] << " "
+	    << state[5] << " " << std::endl;
+}
