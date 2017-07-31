@@ -15,56 +15,59 @@ using Eigen::VectorXd;
 
 
 class PTG {
- public:
-  /**
-   * Constructor.
-   */
-  PTG();
+    public:
+    /**
+     * Constructor.
+     */
+    PTG(bool debug);
 
-  /**
-   * Destructor.
-   */
-  virtual ~PTG();
+    /**
+     * Destructor.
+     */
+    virtual ~PTG();
 
-  vector<double> next_s_vals;
-  vector<double> next_d_vals;
+    bool DEBUG;
 
-  // void ProcessMeasurement(const MeasurementPackage &measurement_pack);
-  vector<double> JMT(vector<double> start, vector<double> end, double T);
+    vector<double> next_s_vals;
+    vector<double> next_d_vals;
 
-  double poly_eval(vector<double> a, double x);
+    // void ProcessMeasurement(const MeasurementPackage &measurement_pack);
+    vector<double> JMT(vector<double> start, vector<double> end, double T);
 
-  void generatePath(double pos_x,
-		    double pos_y,
-		    double car_speed,
-		    double car_accell,
-		    double angle,
-		    //TODO: sensor_fusion,
-		    double end_path_s,
-		    double end_path_d,
-		    double next_waypoints_x,
-		    double next_waypoints_y,
-		    double next_waypoints_s,
-		    double next_waypoints_dx,
-		    double next_waypoints_dy,
-		    int new_points_needed);
+    double poly_eval(vector<double> a, double x);
+
+    void generatePath(double pos_x,
+                      double pos_y,
+                      double car_speed,
+                      double car_accell,
+                      double angle,
+                      //TODO: sensor_fusion,
+                      double end_path_s,
+                      double end_path_d,
+                      double next_waypoints_x,
+                      double next_waypoints_y,
+                      double next_waypoints_s,
+                      double next_waypoints_dx,
+                      double next_waypoints_dy,
+                      int new_points_needed);
   
- private:
+    private:
 
-  //bool is_initialized_;
-  int N_SAMPLES = 10;
-  float SIGMA_S [3] = {10.0, 4.0, 2.0}; // s, s_dot, s_double_dot
-  float SIGMA_D [3] = {1.0, 1.0, 1.0};
-  float SIGMA_T = 2.0;
+        float target_speed = 15.0; // 25 m/s is about 50 m/h
 
-  float MAX_JERK = 10; // m/s/s/s
-  float MAX_ACCEL= 10; // m/s/s
+        int N_SAMPLES = 10;
+        float SIGMA_S [3] = {10.0, 4.0, 2.0}; // s, s_dot, s_double_dot
+        float SIGMA_D [3] = {1.0, 1.0, 1.0};
+        float SIGMA_T = 2.0;
 
-  float EXPECTED_JERK_IN_ONE_SEC = 2; // m/s/s
-  float EXPECTED_ACC_IN_ONE_SEC = 1; // m/s
+        float MAX_JERK = 10; // m/s/s/s
+        float MAX_ACCEL= 10; // m/s/s
 
-  float SPEED_LIMIT = 30;
-  float VEHICLE_RADIUS = 1.5; // model vehicle as circle to simplify collision detection
+        float EXPECTED_JERK_IN_ONE_SEC = 2; // m/s/s
+        float EXPECTED_ACC_IN_ONE_SEC = 1; // m/s
+
+        float SPEED_LIMIT = 30;
+        float VEHICLE_RADIUS = 1.5; // model vehicle as circle to simplify collision detection
 };
 
 #endif /* PTG_H_ */

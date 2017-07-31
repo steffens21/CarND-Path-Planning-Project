@@ -409,7 +409,7 @@ int main() {
                 }
 
                 // Create a path trajectory generator (PTG) instance
-                PTG ptg;
+                PTG ptg(DEBUG);
 
                 // Use helper function to get next waypoint
                 int next_wayp = NextWaypoint(car_x,

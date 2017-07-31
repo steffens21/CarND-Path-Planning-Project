@@ -11,21 +11,23 @@ using Eigen::MatrixXd;
 using Eigen::VectorXd;
 
 
-PTG::PTG() {}
+PTG::PTG(bool debug) {
+    DEBUG = debug;
+}
 
 PTG::~PTG() {}
 
 // eval poly of degree 5
 double PTG::poly_eval(vector<double> a, double x) {
-  double x2 = x * x;
-  double x3 = x2 * x;
-  double x4 = x2 * x2;
-  double x5 = x3 * x2;
-  return a[0] + a[1] * x + a[2] * x2 + a[3] * x3 + a[4] * x4 + a[5] * x5; 
+    double x2 = x * x;
+    double x3 = x2 * x;
+    double x4 = x2 * x2;
+    double x5 = x3 * x2;
+    return a[0] + a[1] * x + a[2] * x2 + a[3] * x3 + a[4] * x4 + a[5] * x5;
 }
 
 vector<double> PTG::JMT(vector< double> start, vector <double> end, double T) {
-  /*
+    /*
     Calculate the Jerk Minimizing Trajectory that connects the initial state
     to the final state in time T.
 
@@ -47,115 +49,103 @@ vector<double> PTG::JMT(vector< double> start, vector <double> end, double T) {
 
     > JMT( [0, 10, 0], [10, 10, 0], 1)
     [0.0, 10.0, 0.0, 0.0, 0.0, 0.0]
-  */
+     */
 
-  MatrixXd A = MatrixXd(3, 3);
-  A << T*T*T, T*T*T*T, T*T*T*T*T,
-    3*T*T, 4*T*T*T,5*T*T*T*T,
-    6*T, 12*T*T, 20*T*T*T;
+    MatrixXd A = MatrixXd(3, 3);
+    A << T*T*T, T*T*T*T, T*T*T*T*T,
+        3*T*T, 4*T*T*T,5*T*T*T*T,
+        6*T, 12*T*T, 20*T*T*T;
 
-  MatrixXd B = MatrixXd(3,1);
-  B << end[0]-(start[0]+start[1]*T+.5*start[2]*T*T),
-    end[1]-(start[1]+start[2]*T),
-    end[2]-start[2];
+    MatrixXd B = MatrixXd(3,1);
+    B << end[0]-(start[0]+start[1]*T+.5*start[2]*T*T),
+        end[1]-(start[1]+start[2]*T),
+        end[2]-start[2];
 
-  MatrixXd Ai = A.inverse();
+    MatrixXd Ai = A.inverse();
 
-  MatrixXd C = Ai*B;
+    MatrixXd C = Ai*B;
 
-  vector <double> result = {start[0], start[1], .5*start[2]};
-  for(int i = 0; i < C.size(); i++)
-    {
-      result.push_back(C.data()[i]);
+    vector <double> result = {start[0], start[1], .5*start[2]};
+    for(int i = 0; i < C.size(); i++) {
+        result.push_back(C.data()[i]);
     }
 
-  return result;
+    return result;
 }
 
 void PTG::generatePath(double pos_x,
-		       double pos_y,
-		       double car_speed,
-		       double car_accell,
-		       double angle,
-		       double end_path_s,
-		       double end_path_d,
-		       double next_waypoints_x,
-		       double next_waypoints_y,
-		       double next_waypoints_s,
-		       double next_waypoints_dx,
-		       double next_waypoints_dy,
-		       int new_points_needed) {
+                       double pos_y,
+                       double car_speed,
+                       double car_accell,
+                       double angle,
+                       double end_path_s,
+                       double end_path_d,
+                       double next_waypoints_x,
+                       double next_waypoints_y,
+                       double next_waypoints_s,
+                       double next_waypoints_dx,
+                       double next_waypoints_dy,
+                       int new_points_needed) {
 
-  // TODO: Right now we let the car always drive in the middle lane.
-  //       Eventually we have to use an algorithm to determine the best lane
-  int desired_lane = 1;
+    // TODO: Right now we let the car always drive in the middle lane.
+    //       Eventually we have to use an algorithm to determine the best lane
+    int desired_lane = 1;
 
-  // the waypoints are not necessarily on the right lane.  You have to use the dx and dy to adapt.
-  double next_x_wayp = next_waypoints_x + next_waypoints_dx * (2 + desired_lane * 4);
-  double next_y_wayp = next_waypoints_y + next_waypoints_dy * (2 + desired_lane * 4);
+    // the waypoints are not necessarily on the right lane.  You have to use the dx and dy to adapt.
+    double next_x_wayp = next_waypoints_x + next_waypoints_dx * (2 + desired_lane * 4);
+    double next_y_wayp = next_waypoints_y + next_waypoints_dy * (2 + desired_lane * 4);
 
-  // TODO: limit speed, accelleration and jerk
-  // TODO: don't collide with other cars
-  // TODO: use spline for smoothing
+    // TODO: limit speed, accelleration and jerk
+    // TODO: don't collide with other cars
 
-  std::cout << "-------------------------" << std::endl;
-  //std::cout << pos_x << " " << pos_y << " " << next_x_wayp << " " << next_y_wayp << std::endl;
+    // Use JMT
+    double distance_to_point = next_waypoints_s - end_path_s;
 
-  // Use JMT
-  double distance_to_point = next_waypoints_s - end_path_s;
-  //std::cout << "distance_to_point        " << distance_to_point << std::endl;
+    double time_to_point = distance_to_point / target_speed;
 
-  double target_speed = 15.0; // 25 m/s is about 50 m/h
+    vector<double> poly_coeff = JMT({end_path_s, car_speed, car_accell},
+                                    {next_waypoints_s, target_speed, 0},
+                                    time_to_point);
+    if (DEBUG) {
+        std::cout << "-------------------------" << std::endl;
+        std::cout << pos_x << " " << pos_y << " " << next_x_wayp << " " << next_y_wayp << std::endl;
+        std::cout << "distance_to_point        " << distance_to_point << std::endl;
+        std::cout << "time_to_point            " << time_to_point << std::endl;
+        std::cout << "end_path_s               " << end_path_s << std::endl;
+        std::cout << "next_waypoints_s         " << next_waypoints_s << std::endl;
 
-  double time_to_point = distance_to_point / target_speed;
-  //std::cout << "time_to_point            " << time_to_point << std::endl;
 
-  //std::cout << "end_path_s               " << end_path_s << std::endl;
-  //std::cout << "next_waypoints_s         " << next_waypoints_s << std::endl;
-
-  vector<double> poly_coeff = JMT({end_path_s, car_speed, car_accell},
-				  {next_waypoints_s, target_speed, 0},
-				  time_to_point);
-
-  /*
-  std::cout << "poly_coeff               "
-	    << poly_coeff[0]
-	    << " " << poly_coeff[1]
+        std::cout << "poly_coeff               "
+        << poly_coeff[0]
+        << " " << poly_coeff[1]
 	    << " " << poly_coeff[2]
 	    << " " << poly_coeff[3]
 	    << " " << poly_coeff[4]
 	    << poly_coeff[5] << std::endl;
-  */
-
-  for(int i = 1; i <= new_points_needed; i++) {
-    double t = 0.02 * i;
-    //double poly_val = poly_eval(poly_coeff, t);
-    double poly_val = end_path_s + t * distance_to_point / time_to_point;  // brute force, no accell or jerk minimizing
-    if (poly_val > next_waypoints_s) {
-      continue;
     }
-    next_s_vals.push_back(poly_val);
-    //next_s_vals.push_back(end_path_s + (distance_to_point / new_points_needed * i));
-  }
-  
-  for(int i=0;i<next_s_vals.size();i++) {
-      std::cout << next_s_vals[i] << " ";
-  }
-  std::cout << std::endl;
 
-  for(int i=1;i<next_s_vals.size();i++) {
-    std::cout << (next_s_vals[i] - next_s_vals[i-1]) / 0.02 << " ";
-  }
-  std::cout << std::endl;
-
-  /*
-    for(int i=0;i<next_y_vals.size();i++) {
-    std::cout << next_y_vals[i] << " ";
+    for(int i = 1; i <= new_points_needed; i++) {
+        double t = 0.02 * i;
+        //double poly_val = poly_eval(poly_coeff, t); // TODO: use this
+        // brute force, no accell or jerk minimizing
+        double poly_val = end_path_s + t * distance_to_point / time_to_point;
+        if (poly_val > next_waypoints_s) {
+            continue;
+        }
+        next_s_vals.push_back(poly_val);
     }
-    std::cout << std::endl;
-  */
-  //std::cout << "ptg done" << std::endl;
-  
+
+    if (DEBUG) {
+        for(int i=0;i<next_s_vals.size();i++) {
+            std::cout << next_s_vals[i] << " ";
+        }
+        std::cout << std::endl;
+
+        for(int i=1;i<next_s_vals.size();i++) {
+            std::cout << (next_s_vals[i] - next_s_vals[i-1]) / 0.02 << " ";
+        }
+        std::cout << std::endl;
+    }
 }
 
 
