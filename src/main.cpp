@@ -24,28 +24,32 @@ constexpr double pi() { return M_PI; }
 double deg2rad(double x) { return x * pi() / 180; }
 double rad2deg(double x) { return x * 180 / pi(); }
 
+bool DEBUG = true;
+
 // Checks if the SocketIO event has JSON data.
 // If there is data the JSON object in string format will be returned,
 // else the empty string "" will be returned.
 string hasData(string s) {
-  auto found_null = s.find("null");
-  auto b1 = s.find_first_of("[");
-  auto b2 = s.find_first_of("}");
-  if (found_null != string::npos) {
+    auto found_null = s.find("null");
+    auto b1 = s.find_first_of("[");
+    auto b2 = s.find_first_of("}");
+    if (found_null != string::npos) {
+        return "";
+    } else if (b1 != string::npos && b2 != string::npos) {
+        return s.substr(b1, b2 - b1 + 2);
+    }
     return "";
-  } else if (b1 != string::npos && b2 != string::npos) {
-    return s.substr(b1, b2 - b1 + 2);
-  }
-  return "";
 }
-
 
 double distance(double x1, double y1, double x2, double y2)
 {
     return sqrt((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1));
 }
-int ClosestWaypoint(double x, double y, vector<double> maps_x, vector<double> maps_y)
-{
+
+int ClosestWaypoint(double x,
+                    double y,
+                    vector<double> maps_x,
+                    vector<double> maps_y) {
 
     double closestLen = 100000; //large number
     int closestWaypoint = 0;
@@ -67,8 +71,11 @@ int ClosestWaypoint(double x, double y, vector<double> maps_x, vector<double> ma
 
 }
 
-int NextWaypoint(double x, double y, double theta, vector<double> maps_x, vector<double> maps_y)
-{
+int NextWaypoint(double x,
+                 double y,
+                 double theta,
+                 vector<double> maps_x,
+                 vector<double> maps_y) {
 
     int closestWaypoint = ClosestWaypoint(x,y,maps_x,maps_y);
 
@@ -89,8 +96,11 @@ int NextWaypoint(double x, double y, double theta, vector<double> maps_x, vector
 }
 
 // Transform from Cartesian x,y coordinates to Frenet s,d coordinates
-vector<double> getFrenet(double x, double y, double theta, vector<double> maps_x, vector<double> maps_y)
-{
+vector<double> getFrenet(double x,
+                         double y,
+                         double theta,
+                         vector<double> maps_x,
+                         vector<double> maps_y) {
     int next_wp = NextWaypoint(x,y, theta, maps_x,maps_y);
 
     int prev_wp;
@@ -138,28 +148,26 @@ vector<double> getFrenet(double x, double y, double theta, vector<double> maps_x
 }
 
 // Transform from Frenet s,d coordinates to Cartesian x,y
-vector<double> getXY_mod(double s, double d, vector<double> maps_s, vector<double> maps_x, vector<double> maps_y)
-{
+vector<double> getXY_mod(double s,
+                         double d,
+                         vector<double> maps_s,
+                         vector<double> maps_x,
+                         vector<double> maps_y) {
 
     int prev_wp = -1;
 
     while(s > maps_s[prev_wp+1] && (prev_wp < (int)(maps_s.size()-1) ))
     {
         prev_wp++;
-	//std::cout << "up" << std::endl;
     }
     if (prev_wp == -1) {
-      //std::cout << "strange situation " << s << " " << maps_s[prev_wp+1] << std::endl;
-      prev_wp = 0;
+        prev_wp = 0;
     }
 
     // interpolate between wp3 and prev_wp
     int wp2 = (prev_wp + 1) % maps_x.size();
     int wp3 = (wp2 + 1) % maps_x.size();
 
-    //std::cout << "before spline" << std::endl;
-
-    
     tk::spline spline_s_x;
     tk::spline spline_s_y;
     vector<double> maps_x_sel = {maps_x[prev_wp], maps_x[wp2], maps_x[wp3]};
@@ -172,38 +180,30 @@ vector<double> getXY_mod(double s, double d, vector<double> maps_s, vector<doubl
 
     
     spline_s_x.set_points(maps_s_sel,
-			  maps_x_sel);
+                          maps_x_sel);
     spline_s_y.set_points(maps_s_sel,
-			  maps_y_sel);
+                          maps_y_sel);
     
     int samples = 40;
     float step_s = abs(maps_s_sel[-1] - maps_s_sel[0]) / float(samples);
-    //float step_s = abs(maps_s[wp3] - maps_s[prev_wp]) / float(samples);
-    //float step_x = abs(maps_x[wp3] - maps_x[prev_wp]) / float(samples);
-    //float step_y = abs(maps_y[wp3] - maps_y[prev_wp]) / float(samples);
     for (int i = 0; i < samples; i++) {
-      //maps_s_mod.push_back( maps_s[prev_wp] + i * step_s );
-      //maps_x_mod.push_back( maps_x[prev_wp] + i * step_x );
-      //maps_y_mod.push_back( maps_y[prev_wp] + i * step_y );
-      
-      float s_val = maps_s_sel[0] + i * step_s;
-      maps_x_mod.push_back(spline_s_x(s_val));
-      maps_y_mod.push_back(spline_s_y(s_val));
-      maps_s_mod.push_back(s_val);
-      
+        float s_val = maps_s_sel[0] + i * step_s;
+        maps_x_mod.push_back(spline_s_x(s_val));
+        maps_y_mod.push_back(spline_s_y(s_val));
+        maps_s_mod.push_back(s_val);
     }
 
-    //std::cout << "after spline" << std::endl;
-    
+    // now perform original getXY calculation with refined waypoints
     int prev_wp_mod = -1;
-    while(s > maps_s_mod[prev_wp_mod+1] && (prev_wp_mod < (int)(maps_s_mod.size()-1) ))
-    {
+    while(s > maps_s_mod[prev_wp_mod+1]
+          && (prev_wp_mod < (int)(maps_s_mod.size()-1))) {
         prev_wp_mod++;
     }
-    int wp2_mod = (prev_wp_mod + 1) % maps_x_mod.size(); // the modulus should never be applied
-    
+    // the modulus should never be applied
+    int wp2_mod = (prev_wp_mod + 1) % maps_x_mod.size();
 
-    double heading = atan2((maps_y_mod[wp2_mod]-maps_y_mod[prev_wp_mod]),(maps_x_mod[wp2_mod]-maps_x_mod[prev_wp_mod]));
+    double heading = atan2((maps_y_mod[wp2_mod]-maps_y_mod[prev_wp_mod]),
+                           (maps_x_mod[wp2_mod]-maps_x_mod[prev_wp_mod]));
     // the x,y,s along the segment
     double seg_s = (s - maps_s_mod[prev_wp_mod]);
 
@@ -215,39 +215,39 @@ vector<double> getXY_mod(double s, double d, vector<double> maps_s, vector<doubl
     double x = seg_x + d * cos(perp_heading);
     double y = seg_y + d * sin(perp_heading);
 
-    //std::cout << "end getXY" << std::endl;
-
     return {x,y};
 
 }
 
 
 // Transform from Frenet s,d coordinates to Cartesian x,y
-vector<double> getXY(double s, double d, vector<double> maps_s, vector<double> maps_x, vector<double> maps_y)
-{
-  int prev_wp = -1;
+vector<double> getXY(double s,
+                     double d,
+                     vector<double> maps_s,
+                     vector<double> maps_x,
+                     vector<double> maps_y) {
+    int prev_wp = -1;
 
-  while(s > maps_s[prev_wp+1] && (prev_wp < (int)(maps_s.size()-1) ))
-    {
-      prev_wp++;
+    while(s > maps_s[prev_wp+1] && (prev_wp < (int)(maps_s.size()-1) )) {
+        prev_wp++;
     }
 
-  int wp2 = (prev_wp+1)%maps_x.size();
+    int wp2 = (prev_wp+1)%maps_x.size();
 
-  double heading = atan2((maps_y[wp2]-maps_y[prev_wp]),(maps_x[wp2]-maps_x[prev_wp]));
-  // the x,y,s along the segment
-  double seg_s = (s-maps_s[prev_wp]);
+    double heading = atan2((maps_y[wp2] - maps_y[prev_wp]),
+                           (maps_x[wp2] - maps_x[prev_wp]));
+    // the x,y,s along the segment
+    double seg_s = (s - maps_s[prev_wp]);
 
-  double seg_x = maps_x[prev_wp]+seg_s*cos(heading);
-  double seg_y = maps_y[prev_wp]+seg_s*sin(heading);
+    double seg_x = maps_x[prev_wp] + seg_s * cos(heading);
+    double seg_y = maps_y[prev_wp] + seg_s * sin(heading);
 
-  double perp_heading = heading-pi()/2;
+    double perp_heading = heading-pi() / 2;
 
-  double x = seg_x + d*cos(perp_heading);
-  double y = seg_y + d*sin(perp_heading);
+    double x = seg_x + d*cos(perp_heading);
+    double y = seg_y + d*sin(perp_heading);
 
-  return {x,y};
-
+    return {x,y};
 }
 
 
@@ -270,240 +270,276 @@ int main() {
 
   string line;
   while (getline(in_map_, line)) {
-    istringstream iss(line);
-    double x;
-    double y;
-    float s;
-    float d_x;
-    float d_y;
-    iss >> x;
-    iss >> y;
-    iss >> s;
-    iss >> d_x;
-    iss >> d_y;
-    map_waypoints_x.push_back(x);
-    map_waypoints_y.push_back(y);
-    map_waypoints_s.push_back(s);
-    map_waypoints_dx.push_back(d_x);
-    map_waypoints_dy.push_back(d_y);
+      istringstream iss(line);
+      double x;
+      double y;
+      float s;
+      float d_x;
+      float d_y;
+      iss >> x;
+      iss >> y;
+      iss >> s;
+      iss >> d_x;
+      iss >> d_y;
+      map_waypoints_x.push_back(x);
+      map_waypoints_y.push_back(y);
+      map_waypoints_s.push_back(s);
+      map_waypoints_dx.push_back(d_x);
+      map_waypoints_dy.push_back(d_y);
   }
 
-  h.onMessage([&map_waypoints_x,&map_waypoints_y,&map_waypoints_s,&map_waypoints_dx,&map_waypoints_dy](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
-             uWS::OpCode opCode) {
+  h.onMessage([&map_waypoints_x,
+               &map_waypoints_y,
+               &map_waypoints_s,
+               &map_waypoints_dx,
+               &map_waypoints_dy]
+              (uWS::WebSocket<uWS::SERVER> ws,
+               char *data,
+               size_t length,
+               uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
     // The 4 signifies a websocket message
     // The 2 signifies a websocket event
     //auto sdata = string(data).substr(0, length);
     //cout << sdata << endl;
     if (length && length > 2 && data[0] == '4' && data[1] == '2') {
-
-      auto s = hasData(data);
-
-      if (s != "") {
-    auto j = json::parse(s);
+        auto s = hasData(data);
+        if (s != "") {
+            auto j = json::parse(s);
     
-    string event = j[0].get<string>();
+            string event = j[0].get<string>();
     
-    if (event == "telemetry") {
-      // j[1] is the data JSON object
+            if (event == "telemetry") {
+                // j[1] is the data JSON object
       
-        // Main car's localization Data
-        double car_x = j[1]["x"];
-        double car_y = j[1]["y"];
-        double car_s = j[1]["s"];
-        double car_d = j[1]["d"];
-        double car_yaw = j[1]["yaw"];
-        double car_speed = j[1]["speed"];
+                // Main car's localization Data
+                double car_x = j[1]["x"];
+                double car_y = j[1]["y"];
+                double car_s = j[1]["s"];
+                double car_d = j[1]["d"];
+                double car_yaw = j[1]["yaw"];
+                double car_speed = j[1]["speed"];
 
-	std:: cout << " CAR STATE: (x,y) , (s,d), yaw, speed" << std::endl;
-	std:: cout << " " << car_x << " " << car_y << "   " << car_s << " " << car_d << "    " << car_yaw << "   " << car_speed << std::endl;
+                if (DEBUG) {
+                    std::cout << " CAR STATE: (x,y) , (s,d), yaw, speed"
+                              << std::endl;
+                    std::cout << " " << car_x
+                              << " " << car_y
+                              << "   " << car_s
+                              << " " << car_d
+                              << "    " << car_yaw
+                              << "   " << car_speed << std::endl;
+                }
 
-        // Previous path data given to the Planner
-        auto previous_path_x = j[1]["previous_path_x"];
-        auto previous_path_y = j[1]["previous_path_y"];
-        // Previous path's end s and d values 
-        double end_path_s = j[1]["end_path_s"];
-        double end_path_d = j[1]["end_path_d"];
+                // Previous path data given to the Planner
+                auto previous_path_x = j[1]["previous_path_x"];
+                auto previous_path_y = j[1]["previous_path_y"];
+                // Previous path's end s and d values
+                double end_path_s = j[1]["end_path_s"];
+                double end_path_d = j[1]["end_path_d"];
 
-        // Sensor Fusion Data, a list of all other cars on the same side of the road.
-        auto sensor_fusion = j[1]["sensor_fusion"];
+                // Sensor Fusion Data, a list of all other cars on the same
+                // side of the road.
+                auto sensor_fusion = j[1]["sensor_fusion"];
 
-        json msgJson;
+                json msgJson;
 
-        // TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
+                // define a path made up of (x,y) points that the car will
+                // visit sequentially every .02 seconds
 
-	//double dist_inc = 0.5;
-        //for(int i = 0; i < 50; i++)
-        //{
-        //    next_x_vals.push_back(car_x+(dist_inc*i)*cos(deg2rad(car_yaw)));
-        //    next_y_vals.push_back(car_y+(dist_inc*i)*sin(deg2rad(car_yaw)));
-        //}
-        double pos_x;
-        double pos_y;
-        double angle;
-	int path_size = previous_path_x.size();
+                double pos_x;
+                double pos_y;
+                double angle;
+                int path_size = previous_path_x.size();
 
-	int NBR_PRED_POINTS = 50;
+                int NBR_PRED_POINTS = 50;
 
-	double pos_speed;
-	double pos_accell;
-	double pos_x2;
-	double pos_y2;
+                double pos_speed;
+                double pos_accell;
+                double pos_x2;
+                double pos_y2;
 
-        if(path_size == 0)
-        {
-            pos_x = car_x;
-            pos_y = car_y;
-	    pos_x2 = pos_x;
-	    pos_y2 = pos_y;
-            angle = deg2rad(car_yaw);
-	    vector<double> result = getFrenet(pos_x, pos_y, angle, map_waypoints_x, map_waypoints_y);
-	    end_path_s = result[0];
-	    end_path_d = result[1];
-	    //double car_accel = 0.0;
-	    pos_speed = car_speed * 0.44704;
-	    pos_accell = 0;
-        }
-        else
-        {
-            pos_x = previous_path_x[path_size-1];
-            pos_y = previous_path_y[path_size-1];
+                if(path_size == 0) {
+                    pos_x = car_x;
+                    pos_y = car_y;
+                    pos_x2 = pos_x;
+                    pos_y2 = pos_y;
+                    angle = deg2rad(car_yaw);
+                    vector<double> result = getFrenet(pos_x,
+                                                      pos_y,
+                                                      angle,
+                                                      map_waypoints_x,
+                                                      map_waypoints_y);
+                    end_path_s = result[0];
+                    end_path_d = result[1];
+                    //double car_accel = 0.0;
+                    pos_speed = car_speed * 0.44704;
+                    pos_accell = 0;
+                }
+                else {
+                    pos_x = previous_path_x[path_size-1];
+                    pos_y = previous_path_y[path_size-1];
 
-	    if(path_size > 1) {
-	      pos_x2 = previous_path_x[path_size-2];
-	      pos_y2 = previous_path_y[path_size-2];
-	      angle = atan2(pos_y-pos_y2,pos_x-pos_x2);
-	      pos_speed = sqrt(pow(pos_x-pos_x2, 2) + pow(pos_y-pos_y2,2)) / 0.02;
-	      pos_speed = min(25.0, pos_speed);
-	    }
-	    else {
-	      angle = deg2rad(car_yaw);
-	      pos_speed = car_speed * 0.44704;
-	    }
+                    if(path_size > 1) {
+                        pos_x2 = previous_path_x[path_size-2];
+                        pos_y2 = previous_path_y[path_size-2];
+                        angle = atan2(pos_y-pos_y2,pos_x-pos_x2);
+                        pos_speed = sqrt(pow(pos_x-pos_x2, 2)
+                                         + pow(pos_y-pos_y2,2)) / 0.02;
+                        pos_speed = min(25.0, pos_speed);
+                    }
+                    else {
+                        angle = deg2rad(car_yaw);
+                        pos_speed = car_speed * 0.44704;
+                    }
 
-	    if(path_size > 2) {
-	      double pos_x3 = previous_path_x[path_size-3];
-	      double pos_y3 = previous_path_y[path_size-3];
-	      double pos_speed2 = sqrt((pos_x2-pos_x3)*(pos_x2-pos_x3) + (pos_y2-pos_y3)*(pos_y2-pos_y3)) / 0.02;
-	      pos_accell = pos_speed2 - pos_speed;
-	    }
-	    else {
-	      pos_accell = 0;
-	    }
-        }
+                    if(path_size > 2) {
+                        double pos_x3 = previous_path_x[path_size - 3];
+                        double pos_y3 = previous_path_y[path_size - 3];
+                        double pos_speed2 = sqrt((pos_x2 - pos_x3)
+                                                      * (pos_x2 - pos_x3)
+                                                 + (pos_y2 - pos_y3)
+                                                      * (pos_y2 - pos_y3)
+                                                 ) / 0.02;
+                        pos_accell = pos_speed2 - pos_speed;
+                    }
+                    else {
+                        pos_accell = 0;
+                    }
+                }
 
-	// Create a path trajectory generator (PTG) instance
-	PTG ptg;
+                // Create a path trajectory generator (PTG) instance
+                PTG ptg;
 
-	// Use helper function to get next waypoint
-	int next_wayp = NextWaypoint(car_x, car_y, deg2rad(car_yaw), map_waypoints_x, map_waypoints_y);
-        int pos_next_wayp = NextWaypoint(pos_x, pos_y, angle, map_waypoints_x, map_waypoints_y);
+                // Use helper function to get next waypoint
+                int next_wayp = NextWaypoint(car_x,
+                                             car_y,
+                                             deg2rad(car_yaw),
+                                             map_waypoints_x,
+                                             map_waypoints_y);
+                int pos_next_wayp = NextWaypoint(pos_x,
+                                                 pos_y,
+                                                 angle,
+                                                 map_waypoints_x,
+                                                 map_waypoints_y);
 	
-	ptg.generatePath(pos_x,
-			 pos_y,
-			 //car_s, 
-			 //car_d,
-			 //car_yaw,
-			 pos_speed,
-			 pos_accell,
-			 angle,
-			 end_path_s,
-			 end_path_d,
-			 // TODO: sensor_fusion,
-			 map_waypoints_x[pos_next_wayp],
-			 map_waypoints_y[pos_next_wayp],
-			 map_waypoints_s[pos_next_wayp],
-			 map_waypoints_dx[pos_next_wayp],
-			 map_waypoints_dy[pos_next_wayp],
-			 NBR_PRED_POINTS - path_size);
+                ptg.generatePath(pos_x,
+                                 pos_y,
+                                 //car_s,
+                                 //car_d,
+                                 //car_yaw,
+                                 pos_speed,
+                                 pos_accell,
+                                 angle,
+                                 end_path_s,
+                                 end_path_d,
+                                 // TODO: sensor_fusion,
+                                 map_waypoints_x[pos_next_wayp],
+                                 map_waypoints_y[pos_next_wayp],
+                                 map_waypoints_s[pos_next_wayp],
+                                 map_waypoints_dx[pos_next_wayp],
+                                 map_waypoints_dy[pos_next_wayp],
+                                 NBR_PRED_POINTS - path_size);
 
-	vector<double> next_x_vals;
-	vector<double> next_y_vals;
+                vector<double> next_x_vals;
+                vector<double> next_y_vals;
 
-	for(int i = 0; i < path_size; i++){
-	  next_x_vals.push_back(previous_path_x[i]);
-	  next_y_vals.push_back(previous_path_y[i]);
-	}
+                for(int i = 0; i < path_size; i++){
+                    next_x_vals.push_back(previous_path_x[i]);
+                    next_y_vals.push_back(previous_path_y[i]);
+                }
 
-	//std::cout << "path_size " << path_size << std::endl;
-	for (int i=0; i < ptg.next_s_vals.size(); i++) {
-	  // TODO: use ptg.next_d_vals[i]
+                for (int i=0; i < ptg.next_s_vals.size(); i++) {
+                    // TODO: use ptg.next_d_vals[i]
+                    vector<double> result = getXY(ptg.next_s_vals[i],
+                                                  end_path_d,
+                                                  map_waypoints_s,
+                                                  map_waypoints_x,
+                                                  map_waypoints_y);
+                    if (next_x_vals.size() > 0
+                        && result[0] == next_x_vals[path_size-1]) {
+                        continue;
+                    }
+                    next_x_vals.push_back(result[0]);
+                    next_y_vals.push_back(result[1]);
+                    if (DEBUG) {
+                        std::cout << result[0] << " " << result[1] << std::endl;
+                    }
+                }
 
-	  vector<double> result = getXY(ptg.next_s_vals[i],
-					end_path_d,
-					map_waypoints_s,
-					map_waypoints_x,
-					map_waypoints_y);
-	  if (next_x_vals.size() > 0 && result[0] == next_x_vals[path_size-1]) {
-	    continue;
-	  }
-	  next_x_vals.push_back(result[0]);
-	  next_y_vals.push_back(result[1]);
-	  //std::cout << result[0] << " " << result[1] << std::endl;
-	}
+                if (DEBUG) {
+                    for(int i=0; i<next_x_vals.size();i++) {
+                        std::cout << "     *** " << next_x_vals[i]
+                        << " " << next_y_vals[i]
+                        << " " << std::endl;
+                        if (i>0) {
+                            double speed = sqrt(
+                                                pow(next_x_vals[i] - next_x_vals[i-1], 2)
+                                                + pow(next_y_vals[i] - next_y_vals[i-1], 2)
+                                                ) / 0.02;
+                            if (speed > 25) {
+                                std::cout << "BAD!!! " << i
+                                << " " << ptg.next_s_vals[i]
+                                << " " << ptg.next_s_vals[i-1]
+                                << " " << end_path_d << std::endl;
+                            }
+                            if (speed < 5) {
+                                std::cout << "BAD!!! " << i << std::endl;
+                            }
+                            std::cout << "                                  "
+                            << speed  << std::endl;
+                        }
+                    }
+                }
 
-	std::cout << "pred length " << next_x_vals.size() << std::endl;
-	for(int i=0; i<next_x_vals.size();i++) {
-	  std::cout << "     *** " << next_x_vals[i]
-		    << " " << next_y_vals[i]
-		    << " " << std::endl;
-	  if (i>0) {
-	    double speed = sqrt(pow(next_x_vals[i]-next_x_vals[i-1], 2) + pow(next_y_vals[i] - next_y_vals[i-1], 2)) / 0.02;
-	    if (speed > 25) { std::cout << "BAD!!! " << i << " " << ptg.next_s_vals[i] << " " << ptg.next_s_vals[i-1] << " " << end_path_d << std::endl; }
-	    if (speed < 5) { std::cout << "BAD!!! " << i << std::endl; }
-	    std::cout << "                                        " << speed  << std::endl;
-	  }
-	}
+                msgJson["next_x"] = next_x_vals;
+                msgJson["next_y"] = next_y_vals;
 
-        msgJson["next_x"] = next_x_vals;
-        msgJson["next_y"] = next_y_vals;
+                auto msg = "42[\"control\","+ msgJson.dump()+"]";
 
-        auto msg = "42[\"control\","+ msgJson.dump()+"]";
+                //this_thread::sleep_for(chrono::milliseconds(1000));
+                ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
+            }
+        } else {
+            // Manual driving
+            std::string msg = "42[\"manual\",{}]";
+            ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
+        }
+        }
+    });
 
-        //this_thread::sleep_for(chrono::milliseconds(1000));
-        ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
-      
-    }
-      } else {
-    // Manual driving
-    std::string msg = "42[\"manual\",{}]";
-    ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
-      }
-    }
-  });
+    // We don't need this since we're not using HTTP but if it's removed the
+    // program
+    // doesn't compile :-(
+    h.onHttpRequest([](uWS::HttpResponse *res, uWS::HttpRequest req, char *data,
+                       size_t, size_t) {
+        const std::string s = "<h1>Hello world!</h1>";
+        if (req.getUrl().valueLength == 1) {
+            res->end(s.data(), s.length());
+        } else {
+            // i guess this should be done more gracefully?
+            res->end(nullptr, 0);
+        }
+    });
 
-  // We don't need this since we're not using HTTP but if it's removed the
-  // program
-  // doesn't compile :-(
-  h.onHttpRequest([](uWS::HttpResponse *res, uWS::HttpRequest req, char *data,
-             size_t, size_t) {
-    const std::string s = "<h1>Hello world!</h1>";
-    if (req.getUrl().valueLength == 1) {
-      res->end(s.data(), s.length());
+    h.onConnection([&h](uWS::WebSocket<uWS::SERVER> ws, uWS::HttpRequest req) {
+        std::cout << "Connected!!!" << std::endl;
+    });
+
+    h.onDisconnection([&h](uWS::WebSocket<uWS::SERVER> ws, int code,
+                           char *message, size_t length) {
+        ws.close();
+        std::cout << "Disconnected" << std::endl;
+    });
+
+    int port = 4567;
+    if (h.listen(port)) {
+        std::cout << "Listening to port " << port << std::endl;
     } else {
-      // i guess this should be done more gracefully?
-      res->end(nullptr, 0);
+        std::cerr << "Failed to listen to port" << std::endl;
+        return -1;
     }
-  });
-
-  h.onConnection([&h](uWS::WebSocket<uWS::SERVER> ws, uWS::HttpRequest req) {
-    std::cout << "Connected!!!" << std::endl;
-  });
-
-  h.onDisconnection([&h](uWS::WebSocket<uWS::SERVER> ws, int code,
-			 char *message, size_t length) {
-    ws.close();
-    std::cout << "Disconnected" << std::endl;
-  });
-
-  int port = 4567;
-  if (h.listen(port)) {
-    std::cout << "Listening to port " << port << std::endl;
-  } else {
-    std::cerr << "Failed to listen to port" << std::endl;
-    return -1;
-  }
-  h.run();
+    h.run();
 }
 
 
