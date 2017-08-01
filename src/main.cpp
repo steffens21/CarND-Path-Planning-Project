@@ -8,21 +8,15 @@
 #include <cmath>
 #include <algorithm>
 #include <math.h>
-#include "Eigen-3.3/Eigen/Core"
-#include "Eigen-3.3/Eigen/QR"
 #include "json.hpp"
-#include "spline.h"
 #include "ptg.h"
+#include "tools.h"
 
 using namespace std;
 
 // for convenience
 using json = nlohmann::json;
 
-// For converting back and forth between radians and degrees.
-constexpr double pi() { return M_PI; }
-double deg2rad(double x) { return x * pi() / 180; }
-double rad2deg(double x) { return x * 180 / pi(); }
 
 bool DEBUG = true;
 
@@ -41,214 +35,6 @@ string hasData(string s) {
     return "";
 }
 
-double distance(double x1, double y1, double x2, double y2)
-{
-    return sqrt((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1));
-}
-
-int ClosestWaypoint(double x,
-                    double y,
-                    vector<double> maps_x,
-                    vector<double> maps_y) {
-
-    double closestLen = 100000; //large number
-    int closestWaypoint = 0;
-
-    for(int i = 0; i < maps_x.size(); i++)
-    {
-        double map_x = maps_x[i];
-        double map_y = maps_y[i];
-        double dist = distance(x,y,map_x,map_y);
-        if(dist < closestLen)
-        {
-            closestLen = dist;
-            closestWaypoint = i;
-        }
-
-    }
-
-    return closestWaypoint;
-
-}
-
-int NextWaypoint(double x,
-                 double y,
-                 double theta,
-                 vector<double> maps_x,
-                 vector<double> maps_y) {
-
-    int closestWaypoint = ClosestWaypoint(x,y,maps_x,maps_y);
-
-    double map_x = maps_x[closestWaypoint];
-    double map_y = maps_y[closestWaypoint];
-
-    double heading = atan2( (map_y-y),(map_x-x) );
-
-    double angle = abs(theta-heading);
-
-    if(angle > pi()/4)
-    {
-        closestWaypoint++;
-    }
-
-    return closestWaypoint;
-
-}
-
-// Transform from Cartesian x,y coordinates to Frenet s,d coordinates
-vector<double> getFrenet(double x,
-                         double y,
-                         double theta,
-                         vector<double> maps_x,
-                         vector<double> maps_y) {
-    int next_wp = NextWaypoint(x,y, theta, maps_x,maps_y);
-
-    int prev_wp;
-    prev_wp = next_wp-1;
-    if(next_wp == 0)
-    {
-        prev_wp  = maps_x.size()-1;
-    }
-
-    double n_x = maps_x[next_wp]-maps_x[prev_wp];
-    double n_y = maps_y[next_wp]-maps_y[prev_wp];
-    double x_x = x - maps_x[prev_wp];
-    double x_y = y - maps_y[prev_wp];
-
-    // find the projection of x onto n
-    double proj_norm = (x_x*n_x+x_y*n_y)/(n_x*n_x+n_y*n_y);
-    double proj_x = proj_norm*n_x;
-    double proj_y = proj_norm*n_y;
-
-    double frenet_d = distance(x_x,x_y,proj_x,proj_y);
-
-    //see if d value is positive or negative by comparing it to a center point
-
-    double center_x = 1000-maps_x[prev_wp];
-    double center_y = 2000-maps_y[prev_wp];
-    double centerToPos = distance(center_x,center_y,x_x,x_y);
-    double centerToRef = distance(center_x,center_y,proj_x,proj_y);
-
-    if(centerToPos <= centerToRef)
-    {
-        frenet_d *= -1;
-    }
-
-    // calculate s value
-    double frenet_s = 0;
-    for(int i = 0; i < prev_wp; i++)
-    {
-        frenet_s += distance(maps_x[i],maps_y[i],maps_x[i+1],maps_y[i+1]);
-    }
-
-    frenet_s += distance(0,0,proj_x,proj_y);
-
-    return {frenet_s,frenet_d};
-
-}
-
-// Transform from Frenet s,d coordinates to Cartesian x,y
-vector<double> getXY_mod(double s,
-                         double d,
-                         vector<double> maps_s,
-                         vector<double> maps_x,
-                         vector<double> maps_y) {
-
-    int prev_wp = -1;
-
-    while(s > maps_s[prev_wp+1] && (prev_wp < (int)(maps_s.size()-1) ))
-    {
-        prev_wp++;
-    }
-    if (prev_wp == -1) {
-        prev_wp = 0;
-    }
-
-    // interpolate between wp3 and prev_wp
-    int wp2 = (prev_wp + 1) % maps_x.size();
-    int wp3 = (wp2 + 1) % maps_x.size();
-
-    tk::spline spline_s_x;
-    tk::spline spline_s_y;
-    vector<double> maps_x_sel = {maps_x[prev_wp], maps_x[wp2], maps_x[wp3]};
-    vector<double> maps_y_sel = {maps_y[prev_wp], maps_y[wp2], maps_y[wp3]};
-    vector<double> maps_s_sel = {maps_s[prev_wp], maps_s[wp2], maps_s[wp3]};
-    
-    vector<double> maps_x_mod;
-    vector<double> maps_y_mod;
-    vector<double> maps_s_mod;
-
-    
-    spline_s_x.set_points(maps_s_sel,
-                          maps_x_sel);
-    spline_s_y.set_points(maps_s_sel,
-                          maps_y_sel);
-    
-    int samples = 40;
-    float step_s = abs(maps_s_sel[-1] - maps_s_sel[0]) / float(samples);
-    for (int i = 0; i < samples; i++) {
-        float s_val = maps_s_sel[0] + i * step_s;
-        maps_x_mod.push_back(spline_s_x(s_val));
-        maps_y_mod.push_back(spline_s_y(s_val));
-        maps_s_mod.push_back(s_val);
-    }
-
-    // now perform original getXY calculation with refined waypoints
-    int prev_wp_mod = -1;
-    while(s > maps_s_mod[prev_wp_mod+1]
-          && (prev_wp_mod < (int)(maps_s_mod.size()-1))) {
-        prev_wp_mod++;
-    }
-    // the modulus should never be applied
-    int wp2_mod = (prev_wp_mod + 1) % maps_x_mod.size();
-
-    double heading = atan2((maps_y_mod[wp2_mod]-maps_y_mod[prev_wp_mod]),
-                           (maps_x_mod[wp2_mod]-maps_x_mod[prev_wp_mod]));
-    // the x,y,s along the segment
-    double seg_s = (s - maps_s_mod[prev_wp_mod]);
-
-    double seg_x = maps_x_mod[prev_wp_mod] + seg_s * cos(heading);
-    double seg_y = maps_y_mod[prev_wp_mod] + seg_s * sin(heading);
-
-    double perp_heading = heading - pi()/2;
-
-    double x = seg_x + d * cos(perp_heading);
-    double y = seg_y + d * sin(perp_heading);
-
-    return {x,y};
-
-}
-
-
-// Transform from Frenet s,d coordinates to Cartesian x,y
-vector<double> getXY(double s,
-                     double d,
-                     vector<double> maps_s,
-                     vector<double> maps_x,
-                     vector<double> maps_y) {
-    int prev_wp = -1;
-
-    while(s > maps_s[prev_wp+1] && (prev_wp < (int)(maps_s.size()-1) )) {
-        prev_wp++;
-    }
-
-    int wp2 = (prev_wp+1)%maps_x.size();
-
-    double heading = atan2((maps_y[wp2] - maps_y[prev_wp]),
-                           (maps_x[wp2] - maps_x[prev_wp]));
-    // the x,y,s along the segment
-    double seg_s = (s - maps_s[prev_wp]);
-
-    double seg_x = maps_x[prev_wp] + seg_s * cos(heading);
-    double seg_y = maps_y[prev_wp] + seg_s * sin(heading);
-
-    double perp_heading = heading-pi() / 2;
-
-    double x = seg_x + d*cos(perp_heading);
-    double y = seg_y + d*sin(perp_heading);
-
-    return {x,y};
-}
 
 
 int main() {
@@ -306,12 +92,12 @@ int main() {
         auto s = hasData(data);
         if (s != "") {
             auto j = json::parse(s);
-    
+
             string event = j[0].get<string>();
-    
+
             if (event == "telemetry") {
                 // j[1] is the data JSON object
-      
+
                 // Main car's localization Data
                 double car_x = j[1]["x"];
                 double car_y = j[1]["y"];
@@ -341,6 +127,14 @@ int main() {
                 // Sensor Fusion Data, a list of all other cars on the same
                 // side of the road.
                 auto sensor_fusion = j[1]["sensor_fusion"];
+                // The data format for each car looks like this,
+                // [ id, x, y, vx, vy, s, d].
+                // The id is a unique identifier for that car although
+                // that same car will always end up in the same position in
+                // the vector as well. The x, y values are in global map
+                // coordinates, and the vx, vy values are the velocity
+                // components also in reference to the global map.
+                // Finally s and d are the Frenet coordinates for that car.
 
                 json msgJson;
 
@@ -411,6 +205,22 @@ int main() {
                 // Create a path trajectory generator (PTG) instance
                 PTG ptg(DEBUG);
 
+                for(int i=0; i<sensor_fusion.size(); i++) {
+                    //TODO: only consider vehicles closer than X to car
+                    int veh_id = sensor_fusion[i][0];
+                    Vehicle veh = Vehicle(veh_id,
+                                          transVehState(
+                                                        sensor_fusion[i][1],
+                                                        sensor_fusion[i][2],
+                                                        sensor_fusion[i][3],
+                                                        sensor_fusion[i][4],
+                                                        sensor_fusion[i][5],
+                                                        sensor_fusion[i][6]
+                                                        )
+                                          );
+                    ptg.other_cars.push_back(veh);
+                }
+
                 // Use helper function to get next waypoint
                 int next_wayp = NextWaypoint(car_x,
                                              car_y,
@@ -422,7 +232,7 @@ int main() {
                                                  angle,
                                                  map_waypoints_x,
                                                  map_waypoints_y);
-	
+
                 ptg.generatePath(pos_x,
                                  pos_y,
                                  //car_s,
@@ -433,12 +243,11 @@ int main() {
                                  angle,
                                  end_path_s,
                                  end_path_d,
-                                 // TODO: sensor_fusion,
-                                 map_waypoints_x[pos_next_wayp],
-                                 map_waypoints_y[pos_next_wayp],
+                                 //map_waypoints_x[pos_next_wayp],
+                                 //map_waypoints_y[pos_next_wayp],
                                  map_waypoints_s[pos_next_wayp],
-                                 map_waypoints_dx[pos_next_wayp],
-                                 map_waypoints_dy[pos_next_wayp],
+                                 //map_waypoints_dx[pos_next_wayp],
+                                 //map_waypoints_dy[pos_next_wayp],
                                  NBR_PRED_POINTS - path_size);
 
                 vector<double> next_x_vals;
@@ -541,83 +350,3 @@ int main() {
     }
     h.run();
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -225,3 +225,28 @@ vector<double> getXY(double s,
 
     return {x,y};
 }
+
+// Transform vehicle state of form [x, y, vx, vy, s, d]
+// to state of form [s, s_dot, s_dotdot, d, d_dot, d_dotdot]
+// Obviously the accellerations have to be assumed to be 0
+vector<double> transVehState(double x,
+                             double y,
+                             double vx,
+                             double vy,
+                             double s,
+                             double d) {
+    double delta_theta = atan2(vy, vx);
+    double mag_v = sqrt(pow(vx,2) + pow(vy,2));
+    double v_s = mag_v * cos(delta_theta);
+    double v_d = mag_v * sin(delta_theta);
+
+    vector<double> restult_state;
+    restult_state.push_back(s);
+    restult_state.push_back(v_s);
+    restult_state.push_back(0.0);
+    restult_state.push_back(d);
+    restult_state.push_back(v_d);
+    restult_state.push_back(0.0);
+
+    return restult_state;
+}

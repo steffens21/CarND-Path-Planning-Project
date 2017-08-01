@@ -5,6 +5,7 @@
 #include "Eigen-3.3/Eigen/Core"
 #include "Eigen-3.3/Eigen/QR"
 #include "Eigen-3.3/Eigen/Dense"
+#include "cost.h"
 
 using namespace std;
 using Eigen::MatrixXd;
@@ -41,7 +42,7 @@ vector<double> PTG::JMT(vector< double> start, vector <double> end, double T) {
 
     T     - The duration, in seconds, over which this maneuver should occur.
 
-    OUTPUT 
+    OUTPUT
     an array of length 6, each value corresponding to a coefficent in the polynomial 
     s(t) = a_0 + a_1 * t + a_2 * t**2 + a_3 * t**3 + a_4 * t**4 + a_5 * t**5
 
@@ -80,11 +81,11 @@ void PTG::generatePath(double pos_x,
                        double angle,
                        double end_path_s,
                        double end_path_d,
-                       double next_waypoints_x,
-                       double next_waypoints_y,
+                       //double next_waypoints_x,
+                       //double next_waypoints_y,
                        double next_waypoints_s,
-                       double next_waypoints_dx,
-                       double next_waypoints_dy,
+                       //double next_waypoints_dx,
+                       //double next_waypoints_dy,
                        int new_points_needed) {
 
     // TODO: Right now we let the car always drive in the middle lane.
@@ -92,8 +93,8 @@ void PTG::generatePath(double pos_x,
     int desired_lane = 1;
 
     // the waypoints are not necessarily on the right lane.  You have to use the dx and dy to adapt.
-    double next_x_wayp = next_waypoints_x + next_waypoints_dx * (2 + desired_lane * 4);
-    double next_y_wayp = next_waypoints_y + next_waypoints_dy * (2 + desired_lane * 4);
+    //double next_x_wayp = next_waypoints_x + next_waypoints_dx * (2 + desired_lane * 4);
+    //double next_y_wayp = next_waypoints_y + next_waypoints_dy * (2 + desired_lane * 4);
 
     // TODO: limit speed, accelleration and jerk
     // TODO: don't collide with other cars
@@ -108,7 +109,7 @@ void PTG::generatePath(double pos_x,
                                     time_to_point);
     if (DEBUG) {
         std::cout << "-------------------------" << std::endl;
-        std::cout << pos_x << " " << pos_y << " " << next_x_wayp << " " << next_y_wayp << std::endl;
+        //std::cout << pos_x << " " << pos_y << " " << next_x_wayp << " " << next_y_wayp << std::endl;
         std::cout << "distance_to_point        " << distance_to_point << std::endl;
         std::cout << "time_to_point            " << time_to_point << std::endl;
         std::cout << "end_path_s               " << end_path_s << std::endl;
@@ -118,10 +119,10 @@ void PTG::generatePath(double pos_x,
         std::cout << "poly_coeff               "
         << poly_coeff[0]
         << " " << poly_coeff[1]
-	    << " " << poly_coeff[2]
-	    << " " << poly_coeff[3]
-	    << " " << poly_coeff[4]
-	    << poly_coeff[5] << std::endl;
+            << " " << poly_coeff[2]
+            << " " << poly_coeff[3]
+            << " " << poly_coeff[4]
+            << poly_coeff[5] << std::endl;
     }
 
     for(int i = 1; i <= new_points_needed; i++) {
@@ -149,161 +150,20 @@ void PTG::generatePath(double pos_x,
 }
 
 
+double PTG::calculate_cost(vector<double> traj,
+                           int target_vehicle,
+                           double delta,
+                           double goal_T,
+                           vector<double> predictions){
+    // TODO: probably don't need predictions.  Just use ptg.other_cars
+    // TODO: set-up cost_functions_with_weigths
+    double total_cost = 0.0;
+    // TODO: loop over all cost functions,
+    //       - add weight * cost to total_cost
+    return total_cost;
+}
 
 /*
-def time_diff_cost(traj, target_vehicle, delta, T, predictions):
-    """
-    Penalizes trajectories that span a duration which is longer or 
-    shorter than the duration requested.
-    """
-    _, _, t = traj
-    return logistic(float(abs(t-T)) / T)
-
-def s_diff_cost(traj, target_vehicle, delta, T, predictions):
-    """
-    Penalizes trajectories whose s coordinate (and derivatives) 
-    differ from the goal.
-    """
-    s, _, T = traj
-    target = predictions[target_vehicle].state_in(T)
-    target = list(np.array(target) + np.array(delta))
-    s_targ = target[:3]
-    S = [f(T) for f in get_f_and_N_derivatives(s, 2)]
-    cost = 0
-    for actual, expected, sigma in zip(S, s_targ, SIGMA_S):
-        diff = float(abs(actual-expected))
-        cost += logistic(diff/sigma)
-    return cost
-
-def d_diff_cost(traj, target_vehicle, delta, T, predictions):
-    """
-    Penalizes trajectories whose d coordinate (and derivatives) 
-    differ from the goal.
-    """
-    _, d_coeffs, T = traj
-    
-    d_dot_coeffs = differentiate(d_coeffs)
-    d_ddot_coeffs = differentiate(d_dot_coeffs)
-
-    d = to_equation(d_coeffs)
-    d_dot = to_equation(d_dot_coeffs)
-    d_ddot = to_equation(d_ddot_coeffs)
-
-    D = [d(T), d_dot(T), d_ddot(T)]
-    
-    target = predictions[target_vehicle].state_in(T)
-    target = list(np.array(target) + np.array(delta))
-    d_targ = target[3:]
-    cost = 0
-    for actual, expected, sigma in zip(D, d_targ, SIGMA_D):
-        diff = float(abs(actual-expected))
-        cost += logistic(diff/sigma)
-    return cost
-
-def collision_cost(traj, target_vehicle, delta, T, predictions):
-    """
-    Binary cost function which penalizes collisions.
-    """
-    nearest = nearest_approach_to_any_vehicle(traj, predictions)
-    if nearest < 2*VEHICLE_RADIUS: return 1.0
-    else : return 0.0
-
-def buffer_cost(traj, target_vehicle, delta, T, predictions):
-    """
-    Penalizes getting close to other vehicles.
-    """
-    nearest = nearest_approach_to_any_vehicle(traj, predictions)
-    return logistic(2*VEHICLE_RADIUS / nearest)
-    
-def stays_on_road_cost(traj, target_vehicle, delta, T, predictions):
-    pass
-
-def exceeds_speed_limit_cost(traj, target_vehicle, delta, T, predictions):
-    pass
-
-def efficiency_cost(traj, target_vehicle, delta, T, predictions):
-    """
-    Rewards high average speeds.
-    """
-    s, _, t = traj
-    s = to_equation(s)
-    avg_v = float(s(t)) / t
-    targ_s, _, _, _, _, _ = predictions[target_vehicle].state_in(t)
-    targ_v = float(targ_s) / t
-    return logistic(2*float(targ_v - avg_v) / avg_v)
-
-def max_accel_cost(traj, target_vehicle, delta, T, predictions):
-    s, d, t = traj
-    s_dot = differentiate(s)
-    s_d_dot = differentiate(s_dot)
-    a = to_equation(s_d_dot)
-    total_acc = 0
-    dt = float(T) / 100.0
-    for i in range(100):
-        t = dt * i
-        acc = a(t)
-        total_acc += abs(acc*dt)
-    acc_per_second = total_acc / T
-    
-    return logistic(acc_per_second / EXPECTED_ACC_IN_ONE_SEC )
-    
-def total_accel_cost(traj, target_vehicle, delta, T, predictions):
-    s, d, t = traj
-    s_dot = differentiate(s)
-    s_d_dot = differentiate(s_dot)
-    a = to_equation(s_d_dot)
-    all_accs = [a(float(T)/100 * i) for i in range(100)]
-    max_acc = max(all_accs, key=abs)
-    if abs(max_acc) > MAX_ACCEL: return 1
-    else: return 0
-    
-
-def max_jerk_cost(traj, target_vehicle, delta, T, predictions):
-    s, d, t = traj
-    s_dot = differentiate(s)
-    s_d_dot = differentiate(s_dot)
-    jerk = differentiate(s_d_dot)
-    jerk = to_equation(jerk)
-    all_jerks = [jerk(float(T)/100 * i) for i in range(100)]
-    max_jerk = max(all_jerks, key=abs)
-    if abs(max_jerk) > MAX_JERK: return 1
-    else: return 0
-
-def total_jerk_cost(traj, target_vehicle, delta, T, predictions):
-    s, d, t = traj
-    s_dot = differentiate(s)
-    s_d_dot = differentiate(s_dot)
-    jerk = to_equation(differentiate(s_d_dot))
-    total_jerk = 0
-    dt = float(T) / 100.0
-    for i in range(100):
-        t = dt * i
-        j = jerk(t)
-        total_jerk += abs(j*dt)
-    jerk_per_second = total_jerk / T
-    return logistic(jerk_per_second / EXPECTED_JERK_IN_ONE_SEC )
-
-
-class Vehicle(object):
-    """
-    Helper class. Non-ego vehicles move w/ constant acceleration
-    """
-    def __init__(self, start):
-        self.start_state = start
-    
-    def state_in(self, t):
-        s = self.start_state[:3]
-        d = self.start_state[3:]
-        state = [
-            s[0] + (s[1] * t) + s[2] * t**2 / 2.0,
-            s[1] + s[2] * t,
-            s[2],
-            d[0] + (d[1] * t) + d[2] * t**2 / 2.0,
-            d[1] + d[2] * t,
-            d[2],
-        ]
-        return state
-
 def logistic(x):
     """
     A function that returns a value between 0 and 1 for x in the 
@@ -449,7 +309,7 @@ def PTG(start_s, start_d, target_vehicle, delta, T, predictions):
             goals.append((perturbed[0], perturbed[1], t))
         all_goals += goals
         t += timestep
-    
+
     # find best trajectory
     trajectories = []
     for goal in all_goals:
@@ -457,11 +317,11 @@ def PTG(start_s, start_d, target_vehicle, delta, T, predictions):
         s_coefficients = JMT(start_s, s_goal, t)
         d_coefficients = JMT(start_d, d_goal, t)
         trajectories.append(tuple([s_coefficients, d_coefficients, t]))
-    
+
     best = min(trajectories, key=lambda tr: calculate_cost(tr, target_vehicle, delta, T, predictions, WEIGHTED_COST_FUNCTIONS))
     calculate_cost(best, target_vehicle, delta, T, predictions, WEIGHTED_COST_FUNCTIONS, verbose=True)
     return best
-    
+
 
 def calculate_cost(trajectory, target_vehicle, delta, goal_t, predictions, cost_functions_with_weights, verbose=False):
     cost = 0

@@ -7,6 +7,7 @@
 #include <vector>
 #include "Eigen-3.3/Eigen/Core"
 #include "Eigen-3.3/Eigen/QR"
+#include "veh.h"
 
 
 using namespace std;
@@ -28,6 +29,8 @@ class PTG {
 
     bool DEBUG;
 
+    vector<Vehicle> other_cars;
+
     vector<double> next_s_vals;
     vector<double> next_d_vals;
 
@@ -41,16 +44,21 @@ class PTG {
                       double car_speed,
                       double car_accell,
                       double angle,
-                      //TODO: sensor_fusion,
                       double end_path_s,
                       double end_path_d,
-                      double next_waypoints_x,
-                      double next_waypoints_y,
+                      //double next_waypoints_x,
+                      //double next_waypoints_y,
                       double next_waypoints_s,
-                      double next_waypoints_dx,
-                      double next_waypoints_dy,
+                      //double next_waypoints_dx,
+                      //double next_waypoints_dy,
                       int new_points_needed);
-  
+    
+    double calculate_cost(vector<double> traj,
+                          int target_vehicle,
+                          double delta,
+                          double goal_T,
+                          vector<double> predictions);
+
     private:
 
         float target_speed = 15.0; // 25 m/s is about 50 m/h

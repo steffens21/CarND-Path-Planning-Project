@@ -48,5 +48,14 @@ vector<double> getXY(double s,
                      vector<double> maps_x,
                      vector<double> maps_y);
 
+// Transform vehicle state of form [x, y, vx, vy, s, d]
+// to state of form [s, s_dot, s_dotdot, d, d_dot, d_dotdot]
+vector<double> transVehState(double x,
+                             double y,
+                             double vx,
+                             double vy,
+                             double s,
+                             double d);
+
 
 #endif /* TOOLS_H_ */

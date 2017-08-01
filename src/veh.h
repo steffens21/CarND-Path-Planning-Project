@@ -4,28 +4,33 @@
 using namespace std;
 
 class Vehicle {
- public:
-  /**
-   * Constructor.
-   */
-  Vehicle(vector<double> start_state);
+   public:
+      /**
+       * Constructor.
+       */
+      Vehicle(int id, vector<double> start_state);
 
-  /**
-   * Destructor.
-   */
-  virtual ~Vehicle();
+      /**
+       * Destructor.
+       */
+      virtual ~Vehicle();
 
-  /**
-   * Vehicle state
-   */
-  vector<double> state;
+      /**
+       * Vehicle id
+       */
+      int id;
 
-  /**
-   * Return state of vehicle in t sec
-   */
-  vector<double> state_in(double t);
+      /**
+       * Vehicle state
+       */
+      vector<double> state;
 
-  void log_state();
+      /**
+       * Return state of vehicle in t sec
+       */
+      vector<double> state_in(double t);
+
+      void log_state();
 };
 
 #endif /* VEH_H_ */

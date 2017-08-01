@@ -11,7 +11,8 @@ set(sources
     src/main.cpp
     src/ptg.cpp
     src/veh.cpp
-    src/cost.cpp)
+    src/cost.cpp
+    src/tools.cpp)
 
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin") 
