@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <math.h>
 #include "spline.h"
+#include "veh.h"
 
 double deg2rad(double x);
 double rad2deg(double x);
@@ -57,5 +58,12 @@ vector<double> transVehState(double x,
                              double s,
                              double d);
 
+float eval_traj(vector<double> coeffs, double t);
+
+float nearest_approach(vector<double> traj,
+                       Vehicle vehicle);
+
+float nearest_approach_to_any_vehicle(vector<double> traj,
+                                      vector<Vehicle> vehicles);
 
 #endif /* TOOLS_H_ */

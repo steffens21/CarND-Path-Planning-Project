@@ -1,6 +1,7 @@
 #ifndef COST_H_
 #define COST_H_
 #include <vector>
+#include "veh.h"
 using namespace std;
 
 class CostFunctions {
@@ -36,7 +37,7 @@ class CostFunctions {
   /*
     Binary cost function which penalizes collisions.
   */
-  bool collision_cost(vector<double> traj, int target_vehicle, double delta, double T, vector<double> predictions);
+  bool collision_cost(vector<double> traj, int target_vehicle, double delta, double T, vector<Vehicle> predictions);
 
   /*
     Penalizes getting close to other vehicles.

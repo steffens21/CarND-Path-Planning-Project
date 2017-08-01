@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <math.h>
 #include "spline.h"
+#include "veh.h"
 
 using namespace std;
 
@@ -249,4 +250,44 @@ vector<double> transVehState(double x,
     restult_state.push_back(0.0);
 
     return restult_state;
+}
+
+
+float eval_traj(vector<double> coeffs, double t) {
+    float total = 0.0;
+    for (int i=0; i<coeffs.size(); i++){
+        total += coeffs[i] * pow(t, i);
+    }
+    return total;
+}
+
+float nearest_approach(vector<double> traj,
+                       Vehicle vehicle) {
+    float closest = 999999;
+    for(int i; i<100; i++){
+        float t = float(i) / 100 * traj[2];
+        float cur_s = eval_traj(traj[0], t);
+        float cur_d = eval_traj(traj[1], t;
+        vector<double> new_state = vehicle.state_in(t);
+        float targ_s = new_state[0];
+        float targ_d = new_state[3]; 
+        float dist = sqrt( pow(cur_s-targ_s, 2) + pow(cur_d-targ_d, 2));
+        if(dist < closest) {
+            closest = dist;
+        }
+    }
+    return closest;
+}
+
+float nearest_approach_to_any_vehicle(vector<double> traj,
+                                      vector<Vehicle> vehicles) {
+
+    float closest = 999999;
+    for(int i; i<vehicles.size(); i++){
+        float d = nearest_approach(traj, vehicles[i]);
+        if(d < closest) {
+            closest = d;
+        }
+    }
+    return closest;
 }

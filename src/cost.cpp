@@ -1,8 +1,12 @@
 #include <iostream>
 #include "cost.h"
+#include "tools.h"
+#include "veh.h"
 #include <vector>
 
 using namespace std;
+
+float VEHICLE_RADIUS = 1.5;
 
 CostFunctions::CostFunctions() {}
 
@@ -21,8 +25,16 @@ float CostFunctions::d_diff_cost(vector<double> traj, int target_vehicle, double
 
 }
 
-bool CostFunctions::collision_cost(vector<double> traj, int target_vehicle, double delta, double T, vector<double> predictions) {
-
+bool CostFunctions::collision_cost(vector<double> traj,
+                                   int target_vehicle,
+                                   double delta,
+                                   double T,
+                                   vector<Vehicle> predictions) {
+    double nearest = nearest_approach_to_any_vehicle(traj, predictions);
+    if(nearest < 2 * VEHICLE_RADIUS) {
+      return true;
+    }
+    return false;
 }
 
 float CostFunctions::buffer_cost(vector<double> traj, int target_vehicle, double delta, double T, vector<double> predictions) {
