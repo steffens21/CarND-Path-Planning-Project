@@ -30,3 +30,14 @@ void Vehicle::log_state() {
               << state[4] << " "
               << state[5] << " " << std::endl;
 }
+
+Trajectory::Trajectory(vector<double> s_coeff,
+                       vector<double> d_coeff,
+                       double t) {
+    this->t = t;
+    this->s_coeff = s_coeff;
+    this->d_coeff = d_coeff;
+}
+
+Trajectory::~Trajectory() {};
+

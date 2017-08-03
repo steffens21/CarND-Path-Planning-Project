@@ -33,4 +33,16 @@ class Vehicle {
       void log_state();
 };
 
+class Trajectory {
+public:
+    Trajectory(vector<double> s_coeff, vector<double> d_coeff, double t);
+
+    virtual ~Trajectory();
+
+    vector<double> s_coeff;
+    vector<double> d_coeff;
+    double t;
+};
+
+
 #endif /* VEH_H_ */

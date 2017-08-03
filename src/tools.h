@@ -60,10 +60,11 @@ vector<double> transVehState(double x,
 
 float eval_traj(vector<double> coeffs, double t);
 
-float nearest_approach(vector<double> traj,
+float nearest_approach(Trajectory traj,
                        Vehicle vehicle);
 
-float nearest_approach_to_any_vehicle(vector<double> traj,
+float nearest_approach_to_any_vehicle(Trajectory traj,
                                       vector<Vehicle> vehicles);
+
 
 #endif /* TOOLS_H_ */
