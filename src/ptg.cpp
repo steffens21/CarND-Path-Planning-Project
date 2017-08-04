@@ -109,11 +109,9 @@ void PTG::generatePath() {
             vector<double> poly_coeff_s= JMT({my_s, my_speed, vehicle.state[2]},
                                              {goal_s, target_speed, 0},
                                              goal_T);
-            log_vector(poly_coeff_s);
             vector<double> poly_coeff_d = JMT({my_d, vehicle.state[4], vehicle.state[4]},
                                               {goal_d, 0, 0},
                                               goal_T);
-            log_vector(poly_coeff_d);
 
             Trajectory traj = Trajectory::Trajectory(poly_coeff_s,
                                                      poly_coeff_d,
@@ -126,7 +124,11 @@ void PTG::generatePath() {
             }
         }
     }
-
+    if (DEBUG) {
+        std::cout << "Best coeffs for s and d" << std:: endl;
+        log_vector(best_s_coeff);
+        log_vector(best_d_coeff);
+    }
 
     for(int i = 1; i <= NBR_PRED_POINTS; i++) {
         double t = TIME_STEP * i;
@@ -146,11 +148,21 @@ void PTG::generatePath() {
 
 
 double PTG::calculate_cost(Trajectory traj){
-    // TODO: set-up cost_functions_with_weigths
+    // TODO: tune weights after all cost functions are implemented
     double total_cost = 0.0;
-    total_cost += collision_cost(traj, other_cars);
-    // TODO: loop over all cost functions,
-    //       - add weight * cost to total_cost
+    total_cost += 1000 * collision_cost(traj, other_cars);
+    total_cost += time_diff_cost(traj, other_cars);
+    total_cost += s_diff_cost(traj, other_cars);
+    total_cost += d_diff_cost(traj, other_cars);
+    total_cost += buffer_cost(traj, other_cars);
+    total_cost += stays_on_road_cost(traj, other_cars);
+    total_cost += exceeds_speed_limit_cost(traj, other_cars);
+    total_cost += efficiency_cost(traj, other_cars);
+    total_cost += max_accel_cost(traj, other_cars);
+    total_cost += total_accel_cost(traj, other_cars);
+    total_cost += max_jerk_cost(traj, other_cars);
+    total_cost += total_jerk_cost(traj, other_cars);
+
     return total_cost;
 }
 
