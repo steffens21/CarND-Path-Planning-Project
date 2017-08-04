@@ -8,12 +8,9 @@ using namespace std;
 
 float VEHICLE_RADIUS = 1.5;
 
-CostFunctions::CostFunctions() {}
-
-CostFunctions::~CostFunctions() {}
 
 
-float CostFunctions::time_diff_cost(Trajectory traj,
+float time_diff_cost(Trajectory traj,
                                     int target_vehicle,
                                     double delta,
                                     double T,
@@ -21,7 +18,7 @@ float CostFunctions::time_diff_cost(Trajectory traj,
     return 0.0;
 }
 
-float CostFunctions::s_diff_cost(Trajectory traj,
+float s_diff_cost(Trajectory traj,
                                  int target_vehicle,
                                  double delta,
                                  double T,
@@ -29,7 +26,7 @@ float CostFunctions::s_diff_cost(Trajectory traj,
     return 0.0;
 }
 
-float CostFunctions::d_diff_cost(Trajectory traj,
+float d_diff_cost(Trajectory traj,
                                  int target_vehicle,
                                  double delta,
                                  double T,
@@ -37,10 +34,10 @@ float CostFunctions::d_diff_cost(Trajectory traj,
     return 0.0;
 }
 
-float CostFunctions::collision_cost(Trajectory traj,
-                                   int target_vehicle,
-                                   double delta,
-                                   double T,
+float collision_cost(Trajectory traj,
+                                    //int target_vehicle,
+                                    //double delta,
+                                    //double T,
                                    vector<Vehicle> predictions) {
     double nearest = nearest_approach_to_any_vehicle(traj, predictions);
     if(nearest < 2 * VEHICLE_RADIUS) {
@@ -49,7 +46,7 @@ float CostFunctions::collision_cost(Trajectory traj,
     return 0.0;
 }
 
-float CostFunctions::buffer_cost(Trajectory traj,
+float buffer_cost(Trajectory traj,
                                  int target_vehicle,
                                  double delta,
                                  double T,
@@ -57,11 +54,11 @@ float CostFunctions::buffer_cost(Trajectory traj,
     return 0.0;
 }
 
-//float CostFunctions::stays_on_road_cost(Trajectory traj, int target_vehicle, double delta, double T, vector<double> predictions) {}
+//float stays_on_road_cost(Trajectory traj, int target_vehicle, double delta, double T, vector<double> predictions) {}
 
-//float CostFunctions::exceeds_speed_limit_cost(Trajectory traj, int target_vehicle, double delta, double T, vector<double> predictions) {}
+//float exceeds_speed_limit_cost(Trajectory traj, int target_vehicle, double delta, double T, vector<double> predictions) {}
 
-float CostFunctions::efficiency_cost(Trajectory traj,
+float efficiency_cost(Trajectory traj,
                                      int target_vehicle,
                                      double delta,
                                      double T,
@@ -69,7 +66,7 @@ float CostFunctions::efficiency_cost(Trajectory traj,
     return 0.0;
 }
 
-float CostFunctions::max_accel_cost(Trajectory traj,
+float max_accel_cost(Trajectory traj,
                                     int target_vehicle,
                                     double delta,
                                     double T,
@@ -77,7 +74,7 @@ float CostFunctions::max_accel_cost(Trajectory traj,
     return 0.0;
 }
 
-float CostFunctions::total_accel_cost(Trajectory traj,
+float total_accel_cost(Trajectory traj,
                                       int target_vehicle,
                                       double delta,
                                       double T,
@@ -85,7 +82,7 @@ float CostFunctions::total_accel_cost(Trajectory traj,
     return 0.0;
 }
 
-float CostFunctions::max_jerk_cost(Trajectory traj,
+float max_jerk_cost(Trajectory traj,
                                    int target_vehicle,
                                    double delta,
                                    double T,
@@ -93,7 +90,7 @@ float CostFunctions::max_jerk_cost(Trajectory traj,
     return 0.0;
 }
 
-float CostFunctions::total_jerk_cost(Trajectory traj,
+float total_jerk_cost(Trajectory traj,
                                      int target_vehicle,
                                      double delta,
                                      double T,

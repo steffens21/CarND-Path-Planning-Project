@@ -5,23 +5,12 @@
 
 using namespace std;
 
-class CostFunctions {
- public:
-  /**
-   * Constructor.
-   */
-  CostFunctions();
 
-  /**
-   * Destructor.
-   */
-  virtual ~CostFunctions();
-
-  /*
-    Penalizes trajectories that span a duration which is longer or 
-    shorter than the duration requested.
-   */
-  float time_diff_cost(Trajectory traj, int target_vehicle, double delta, double T, vector<double> predictions);
+/*
+Penalizes trajectories that span a duration which is longer or
+shorter than the duration requested.
+*/
+float time_diff_cost(Trajectory traj, int target_vehicle, double delta, double T, vector<double> predictions);
 
   /*
     Penalizes trajectories whose s coordinate (and derivatives) 
@@ -38,7 +27,11 @@ class CostFunctions {
   /*
     Binary cost function which penalizes collisions.  Will return 1.0 if collision occurs
   */
-  float collision_cost(Trajectory traj, int target_vehicle, double delta, double T, vector<Vehicle> predictions);
+  float collision_cost(Trajectory traj,
+                       //int target_vehicle,
+                       //double delta,
+                       //double T,
+                       vector<Vehicle> predictions);
 
   /*
     Penalizes getting close to other vehicles.
@@ -65,6 +58,5 @@ class CostFunctions {
 
   float total_jerk_cost(Trajectory traj, int target_vehicle, double delta, double T, vector<double> predictions);
   
-};
 
 #endif /* COST_H_ */

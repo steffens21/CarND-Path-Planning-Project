@@ -8,6 +8,7 @@
 #include "Eigen-3.3/Eigen/Core"
 #include "Eigen-3.3/Eigen/QR"
 #include "tools.h"
+#include "cost.h"
 #include "veh.h"
 
 
@@ -46,11 +47,7 @@ class PTG {
 
     void generatePath();
     
-    double calculate_cost(vector<double> traj,
-                          int target_vehicle,
-                          double delta,
-                          double goal_T,
-                          vector<double> predictions);
+    double calculate_cost(Trajectory traj);
 
     private:
 

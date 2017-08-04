@@ -95,21 +95,45 @@ void PTG::generatePath() {
     float goal_s = my_s + target_speed * goal_T;
     float goal_d = 6; //my_d; // TODO: don't always stay in lane
 
-    vector<double> poly_coeff_s= JMT({my_s, my_speed, vehicle.state[2]},
-                                     {goal_s, target_speed, 0},
-                                      goal_T);
-    log_vector(poly_coeff_s);
-    vector<double> poly_coeff_d = JMT({my_d, vehicle.state[4], vehicle.state[4]},
-                                      {goal_d, 0, 0},
-                                       goal_T);
-    log_vector(poly_coeff_d);
+    vector<double> goals_s = {goal_s - 2, goal_s, goal_s +2 };
+    vector<double> goals_d = {10, 6, 2};
+    float min_cost = 99999.9;
+    vector<double> best_s_coeff;
+    vector<double> best_d_coeff;
+
+    for (int i=0; i<goals_s.size(); i++) {
+        for (int j=0; j<goals_d.size(); j++) {
+            float g_s = goals_s[i];
+            float g_d = goals_d[i];
+
+            vector<double> poly_coeff_s= JMT({my_s, my_speed, vehicle.state[2]},
+                                             {goal_s, target_speed, 0},
+                                             goal_T);
+            log_vector(poly_coeff_s);
+            vector<double> poly_coeff_d = JMT({my_d, vehicle.state[4], vehicle.state[4]},
+                                              {goal_d, 0, 0},
+                                              goal_T);
+            log_vector(poly_coeff_d);
+
+            Trajectory traj = Trajectory::Trajectory(poly_coeff_s,
+                                                     poly_coeff_d,
+                                                     goal_T);
+            float this_cost = calculate_cost(traj);
+            if (this_cost < min_cost) {
+                min_cost = this_cost;
+                best_s_coeff = poly_coeff_s;
+                best_d_coeff = poly_coeff_d;
+            }
+        }
+    }
+
 
     for(int i = 1; i <= NBR_PRED_POINTS; i++) {
         double t = TIME_STEP * i;
-        double poly_val_s = poly_eval(poly_coeff_s, t);
+        double poly_val_s = poly_eval(best_s_coeff, t);
         //double poly_val_s = my_s + t * target_speed;
         next_s_vals.push_back(poly_val_s);
-        double poly_val_d = poly_eval(poly_coeff_d, t);
+        double poly_val_d = poly_eval(best_d_coeff, t);
         //double poly_val_d = my_d;
         next_d_vals.push_back(poly_val_d);
     }
@@ -118,59 +142,13 @@ void PTG::generatePath() {
         std::cout << "next_s_vals " << std::endl;
         log_vector(next_s_vals);
     }
-
-    /*
-
-    // the waypoints are not necessarily on the right lane.  You have to use the dx and dy to adapt.
-    //double next_x_wayp = next_waypoints_x + next_waypoints_dx * (2 + desired_lane * 4);
-    //double next_y_wayp = next_waypoints_y + next_waypoints_dy * (2 + desired_lane * 4);
-
-    // TODO: limit speed, accelleration and jerk
-    // TODO: don't collide with other cars
-
-    // Use JMT
-    double distance_to_point = next_waypoints_s - end_path_s;
-
-    double time_to_point = distance_to_point / target_speed;
-
-    vector<double> poly_coeff = JMT({end_path_s, car_speed, car_accell},
-                                    {next_waypoints_s, target_speed, 0},
-                                    time_to_point);
-
-    for(int i = 1; i <= new_points_needed; i++) {
-        double t = TIME_STEP * i;
-        //double poly_val = poly_eval(poly_coeff, t); // TODO: use this
-        // brute force, no accell or jerk minimizing
-        double poly_val = end_path_s + t * distance_to_point / time_to_point;
-        if (poly_val > next_waypoints_s) {
-            continue;
-        }
-        next_s_vals.push_back(poly_val);
-    }
-
-    if (DEBUG) {
-        for(int i=0;i<next_s_vals.size();i++) {
-            std::cout << next_s_vals[i] << " ";
-        }
-        std::cout << std::endl;
-
-        for(int i=1;i<next_s_vals.size();i++) {
-            std::cout << (next_s_vals[i] - next_s_vals[i-1]) / TIME_STEP << " ";
-        }
-        std::cout << std::endl;
-    }
-     */
 }
 
 
-double PTG::calculate_cost(vector<double> traj,
-                           int target_vehicle,
-                           double delta,
-                           double goal_T,
-                           vector<double> predictions){
-    // TODO: probably don't need predictions.  Just use ptg.other_cars
+double PTG::calculate_cost(Trajectory traj){
     // TODO: set-up cost_functions_with_weigths
     double total_cost = 0.0;
+    total_cost += collision_cost(traj, other_cars);
     // TODO: loop over all cost functions,
     //       - add weight * cost to total_cost
     return total_cost;
