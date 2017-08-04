@@ -189,7 +189,7 @@ int main() {
                 vector<double> next_y_vals;
 
                 // TODO: maybe not re-use old path points
-                for(int i = 0; i < min(path_size, 2); i++){
+                for(int i = 0; i < min(path_size, 10); i++){
                     next_x_vals.push_back(previous_path_x[i]);
                     next_y_vals.push_back(previous_path_y[i]);
                 }

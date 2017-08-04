@@ -244,9 +244,9 @@ vector<double> getSDpos(double car_x,
     double pos_x;
     double pos_y;
     double angle;
-    // Consider maximally 2 previous path points
+    // Consider maximally 10 previous path points
     int path_size = previous_path_x.size();
-    path_size = min(path_size, 2);
+    path_size = min(path_size, 10);
     double pos_speed = 0;
     double pos_accell = 0;
 
@@ -262,31 +262,29 @@ vector<double> getSDpos(double car_x,
         pos_accell = 0;
     }
     else {
-        pos_x = previous_path_x[path_size];
-        pos_y = previous_path_y[path_size];
+        pos_x = previous_path_x[path_size-1];
+        pos_y = previous_path_y[path_size-1];
 
-        if(path_size >= 1) {
-            pos_x2 = previous_path_x[path_size-1];
-            pos_y2 = previous_path_y[path_size-1];
-            angle = atan2(pos_y-pos_y2,pos_x-pos_x2);
-            pos_speed = sqrt(pow(pos_x-pos_x2, 2)
-                             + pow(pos_y-pos_y2,2)) / TIME_STEP;
-            pos_speed *= MPH2MS;
+        if(path_size >= 2) {
+            pos_x2 = previous_path_x[path_size-2];
+            pos_y2 = previous_path_y[path_size-2];
+            angle = atan2(pos_y-pos_y2, pos_x-pos_x2);
+            pos_speed = sqrt(pow(pos_x - pos_x2, 2)
+                             + pow(pos_y - pos_y2,2)) / TIME_STEP;
         }
         else {
             angle = deg2rad(car_yaw);
             pos_speed = car_speed * MPH2MS;
         }
 
-        if(path_size >= 2) {
-            double pos_x3 = previous_path_x[path_size - 2];
-            double pos_y3 = previous_path_y[path_size - 2];
+        if(path_size >= 3) {
+            double pos_x3 = previous_path_x[path_size - 3];
+            double pos_y3 = previous_path_y[path_size - 3];
             double pos_speed2 = sqrt((pos_x2 - pos_x3)
                                      * (pos_x2 - pos_x3)
                                      + (pos_y2 - pos_y3)
                                      * (pos_y2 - pos_y3)
                                      ) / TIME_STEP;
-            pos_speed2 *= MPH2MS;
             pos_accell = (pos_speed2 - pos_speed) / TIME_STEP;
         }
         else {

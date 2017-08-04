@@ -93,7 +93,7 @@ void PTG::generatePath() {
     float my_d = vehicle.state[3];
 
     float goal_s = my_s + target_speed * goal_T;
-    float goal_d = my_d; // TODO: don't always stay in lane
+    float goal_d = 6; //my_d; // TODO: don't always stay in lane
 
     vector<double> poly_coeff_s= JMT({my_s, my_speed, vehicle.state[2]},
                                      {goal_s, target_speed, 0},
@@ -104,14 +104,19 @@ void PTG::generatePath() {
                                        goal_T);
     log_vector(poly_coeff_d);
 
-    for(int i = 0; i < NBR_PRED_POINTS; i++) {
+    for(int i = 1; i <= NBR_PRED_POINTS; i++) {
         double t = TIME_STEP * i;
         double poly_val_s = poly_eval(poly_coeff_s, t);
         //double poly_val_s = my_s + t * target_speed;
         next_s_vals.push_back(poly_val_s);
-        //double poly_val_d = poly_eval(poly_coeff_d, t);
-        double poly_val_d = my_d;
+        double poly_val_d = poly_eval(poly_coeff_d, t);
+        //double poly_val_d = my_d;
         next_d_vals.push_back(poly_val_d);
+    }
+
+    if(DEBUG) {
+        std::cout << "next_s_vals " << std::endl;
+        log_vector(next_s_vals);
     }
 
     /*
