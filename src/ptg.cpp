@@ -6,6 +6,8 @@
 #include "Eigen-3.3/Eigen/QR"
 #include "Eigen-3.3/Eigen/Dense"
 #include "cost.h"
+#include "tools.h"
+#include "veh.h"
 
 using namespace std;
 using Eigen::MatrixXd;
@@ -27,6 +29,7 @@ double PTG::poly_eval(vector<double> a, double x) {
     return a[0] + a[1] * x + a[2] * x2 + a[3] * x3 + a[4] * x4 + a[5] * x5;
 }
 
+//TODO: move to tools.cpp
 vector<double> PTG::JMT(vector< double> start, vector <double> end, double T) {
     /*
     Calculate the Jerk Minimizing Trajectory that connects the initial state
@@ -74,23 +77,44 @@ vector<double> PTG::JMT(vector< double> start, vector <double> end, double T) {
     return result;
 }
 
-void PTG::generatePath(double pos_x,
-                       double pos_y,
-                       double car_speed,
-                       double car_accell,
-                       double angle,
-                       double end_path_s,
-                       double end_path_d,
-                       //double next_waypoints_x,
-                       //double next_waypoints_y,
-                       double next_waypoints_s,
-                       //double next_waypoints_dx,
-                       //double next_waypoints_dy,
-                       int new_points_needed) {
+void PTG::generatePath() {
 
-    // TODO: Right now we let the car always drive in the middle lane.
-    //       Eventually we have to use an algorithm to determine the best lane
-    int desired_lane = 1;
+    if(DEBUG) {
+        vehicle.log_state();
+    }
+
+    int NBR_PRED_POINTS = 50;
+    float TIME_STEP = 0.02;
+
+    float goal_T = NBR_PRED_POINTS * TIME_STEP;
+
+    float my_s = vehicle.state[0];
+    float my_speed = vehicle.state[1];
+    float my_d = vehicle.state[3];
+
+    float goal_s = my_s + target_speed * goal_T;
+    float goal_d = my_d; // TODO: don't always stay in lane
+
+    vector<double> poly_coeff_s= JMT({my_s, my_speed, vehicle.state[2]},
+                                     {goal_s, target_speed, 0},
+                                      goal_T);
+    log_vector(poly_coeff_s);
+    vector<double> poly_coeff_d = JMT({my_d, vehicle.state[4], vehicle.state[4]},
+                                      {goal_d, 0, 0},
+                                       goal_T);
+    log_vector(poly_coeff_d);
+
+    for(int i = 0; i < NBR_PRED_POINTS; i++) {
+        double t = TIME_STEP * i;
+        double poly_val_s = poly_eval(poly_coeff_s, t);
+        //double poly_val_s = my_s + t * target_speed;
+        next_s_vals.push_back(poly_val_s);
+        //double poly_val_d = poly_eval(poly_coeff_d, t);
+        double poly_val_d = my_d;
+        next_d_vals.push_back(poly_val_d);
+    }
+
+    /*
 
     // the waypoints are not necessarily on the right lane.  You have to use the dx and dy to adapt.
     //double next_x_wayp = next_waypoints_x + next_waypoints_dx * (2 + desired_lane * 4);
@@ -107,26 +131,9 @@ void PTG::generatePath(double pos_x,
     vector<double> poly_coeff = JMT({end_path_s, car_speed, car_accell},
                                     {next_waypoints_s, target_speed, 0},
                                     time_to_point);
-    if (DEBUG) {
-        std::cout << "-------------------------" << std::endl;
-        //std::cout << pos_x << " " << pos_y << " " << next_x_wayp << " " << next_y_wayp << std::endl;
-        std::cout << "distance_to_point        " << distance_to_point << std::endl;
-        std::cout << "time_to_point            " << time_to_point << std::endl;
-        std::cout << "end_path_s               " << end_path_s << std::endl;
-        std::cout << "next_waypoints_s         " << next_waypoints_s << std::endl;
-
-
-        std::cout << "poly_coeff               "
-        << poly_coeff[0]
-        << " " << poly_coeff[1]
-            << " " << poly_coeff[2]
-            << " " << poly_coeff[3]
-            << " " << poly_coeff[4]
-            << poly_coeff[5] << std::endl;
-    }
 
     for(int i = 1; i <= new_points_needed; i++) {
-        double t = 0.02 * i;
+        double t = TIME_STEP * i;
         //double poly_val = poly_eval(poly_coeff, t); // TODO: use this
         // brute force, no accell or jerk minimizing
         double poly_val = end_path_s + t * distance_to_point / time_to_point;
@@ -143,10 +150,11 @@ void PTG::generatePath(double pos_x,
         std::cout << std::endl;
 
         for(int i=1;i<next_s_vals.size();i++) {
-            std::cout << (next_s_vals[i] - next_s_vals[i-1]) / 0.02 << " ";
+            std::cout << (next_s_vals[i] - next_s_vals[i-1]) / TIME_STEP << " ";
         }
         std::cout << std::endl;
     }
+     */
 }
 
 

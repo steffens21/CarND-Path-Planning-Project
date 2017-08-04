@@ -7,6 +7,7 @@
 #include <vector>
 #include "Eigen-3.3/Eigen/Core"
 #include "Eigen-3.3/Eigen/QR"
+#include "tools.h"
 #include "veh.h"
 
 
@@ -29,7 +30,11 @@ class PTG {
 
     bool DEBUG;
 
+    Vehicle vehicle = Vehicle(0, {0,0,0,0,0,0});
+    //Vehicle target_vehicle;
     vector<Vehicle> other_cars;
+    //vector<double> target_delta;
+    //float target_T;
 
     vector<double> next_s_vals;
     vector<double> next_d_vals;
@@ -39,19 +44,7 @@ class PTG {
 
     double poly_eval(vector<double> a, double x);
 
-    void generatePath(double pos_x,
-                      double pos_y,
-                      double car_speed,
-                      double car_accell,
-                      double angle,
-                      double end_path_s,
-                      double end_path_d,
-                      //double next_waypoints_x,
-                      //double next_waypoints_y,
-                      double next_waypoints_s,
-                      //double next_waypoints_dx,
-                      //double next_waypoints_dy,
-                      int new_points_needed);
+    void generatePath();
     
     double calculate_cost(vector<double> traj,
                           int target_vehicle,

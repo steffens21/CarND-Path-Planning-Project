@@ -19,7 +19,6 @@ using json = nlohmann::json;
 
 
 bool DEBUG = true;
-
 // Checks if the SocketIO event has JSON data.
 // If there is data the JSON object in string format will be returned,
 // else the empty string "" will be returned.
@@ -86,8 +85,8 @@ int main() {
     // "42" at the start of the message means there's a websocket message event.
     // The 4 signifies a websocket message
     // The 2 signifies a websocket event
-    //auto sdata = string(data).substr(0, length);
-    //cout << sdata << endl;
+    // auto sdata = string(data).substr(0, length);
+    // cout << sdata << endl;
     if (length && length > 2 && data[0] == '4' && data[1] == '2') {
         auto s = hasData(data);
         if (s != "") {
@@ -141,72 +140,34 @@ int main() {
                 // define a path made up of (x,y) points that the car will
                 // visit sequentially every .02 seconds
 
-                double pos_x;
-                double pos_y;
-                double angle;
                 int path_size = previous_path_x.size();
+                
+                vector<double> sa = getSDpos(car_x,
+                                             car_y,
+                                             car_speed,
+                                             car_yaw,
+                                             previous_path_x,
+                                             previous_path_y,
+                                             map_waypoints_x,
+                                             map_waypoints_y);
+                float pos_s = sa[0];
+                float pos_d = sa[1];
+                float pos_speed = sa[2];
+                float pos_accell = sa[3];
+                //int pos_next_wayp = sa[4]; // TODO: maybe not needed
 
-                int NBR_PRED_POINTS = 50;
-
-                double pos_speed;
-                double pos_accell;
-                double pos_x2;
-                double pos_y2;
-
-                if(path_size == 0) {
-                    pos_x = car_x;
-                    pos_y = car_y;
-                    pos_x2 = pos_x;
-                    pos_y2 = pos_y;
-                    angle = deg2rad(car_yaw);
-                    vector<double> result = getFrenet(pos_x,
-                                                      pos_y,
-                                                      angle,
-                                                      map_waypoints_x,
-                                                      map_waypoints_y);
-                    end_path_s = result[0];
-                    end_path_d = result[1];
-                    //double car_accel = 0.0;
-                    pos_speed = car_speed * 0.44704;
-                    pos_accell = 0;
-                }
-                else {
-                    pos_x = previous_path_x[path_size-1];
-                    pos_y = previous_path_y[path_size-1];
-
-                    if(path_size > 1) {
-                        pos_x2 = previous_path_x[path_size-2];
-                        pos_y2 = previous_path_y[path_size-2];
-                        angle = atan2(pos_y-pos_y2,pos_x-pos_x2);
-                        pos_speed = sqrt(pow(pos_x-pos_x2, 2)
-                                         + pow(pos_y-pos_y2,2)) / 0.02;
-                        pos_speed = min(25.0, pos_speed);
-                    }
-                    else {
-                        angle = deg2rad(car_yaw);
-                        pos_speed = car_speed * 0.44704;
-                    }
-
-                    if(path_size > 2) {
-                        double pos_x3 = previous_path_x[path_size - 3];
-                        double pos_y3 = previous_path_y[path_size - 3];
-                        double pos_speed2 = sqrt((pos_x2 - pos_x3)
-                                                      * (pos_x2 - pos_x3)
-                                                 + (pos_y2 - pos_y3)
-                                                      * (pos_y2 - pos_y3)
-                                                 ) / 0.02;
-                        pos_accell = pos_speed2 - pos_speed;
-                    }
-                    else {
-                        pos_accell = 0;
-                    }
-                }
-
+                // Create vehicle object for our vehicle
+                // Note: we assume d_dot and d_dot_dot to be 0
+                // Note: we tale the total speed as s speed
+                Vehicle pos_veh = Vehicle::Vehicle(-1,
+                                                   {pos_s, pos_speed, pos_accell,
+                                                    pos_d, 0, 0});
                 // Create a path trajectory generator (PTG) instance
                 PTG ptg(DEBUG);
+                ptg.vehicle = pos_veh;
 
                 for(int i=0; i<sensor_fusion.size(); i++) {
-                    //TODO: only consider vehicles closer than X to car
+                    // TODO: only consider vehicles closer than X to car
                     int veh_id = sensor_fusion[i][0];
                     Vehicle veh = Vehicle(veh_id,
                                           transVehState(
@@ -221,59 +182,29 @@ int main() {
                     ptg.other_cars.push_back(veh);
                 }
 
-                // Use helper function to get next waypoint
-                int next_wayp = NextWaypoint(car_x,
-                                             car_y,
-                                             deg2rad(car_yaw),
-                                             map_waypoints_x,
-                                             map_waypoints_y);
-                int pos_next_wayp = NextWaypoint(pos_x,
-                                                 pos_y,
-                                                 angle,
-                                                 map_waypoints_x,
-                                                 map_waypoints_y);
+                ptg.generatePath();//map_waypoints_s[pos_next_wayp);
 
-                ptg.generatePath(pos_x,
-                                 pos_y,
-                                 //car_s,
-                                 //car_d,
-                                 //car_yaw,
-                                 pos_speed,
-                                 pos_accell,
-                                 angle,
-                                 end_path_s,
-                                 end_path_d,
-                                 //map_waypoints_x[pos_next_wayp],
-                                 //map_waypoints_y[pos_next_wayp],
-                                 map_waypoints_s[pos_next_wayp],
-                                 //map_waypoints_dx[pos_next_wayp],
-                                 //map_waypoints_dy[pos_next_wayp],
-                                 NBR_PRED_POINTS - path_size);
 
                 vector<double> next_x_vals;
                 vector<double> next_y_vals;
 
-                for(int i = 0; i < path_size; i++){
+                // TODO: maybe not re-use old path points
+                for(int i = 0; i < min(path_size, 2); i++){
                     next_x_vals.push_back(previous_path_x[i]);
                     next_y_vals.push_back(previous_path_y[i]);
                 }
 
                 for (int i=0; i < ptg.next_s_vals.size(); i++) {
-                    // TODO: use ptg.next_d_vals[i]
                     vector<double> result = getXY(ptg.next_s_vals[i],
-                                                  end_path_d,
+                                                  ptg.next_d_vals[i],
                                                   map_waypoints_s,
                                                   map_waypoints_x,
                                                   map_waypoints_y);
-                    if (next_x_vals.size() > 0
-                        && result[0] == next_x_vals[path_size-1]) {
-                        continue;
-                    }
                     next_x_vals.push_back(result[0]);
                     next_y_vals.push_back(result[1]);
-                    if (DEBUG) {
-                        std::cout << result[0] << " " << result[1] << std::endl;
-                    }
+                    //if (DEBUG) {
+                    //    log_vector(result);
+                    //}
                 }
 
                 if (DEBUG) {
@@ -306,7 +237,7 @@ int main() {
 
                 auto msg = "42[\"control\","+ msgJson.dump()+"]";
 
-                //this_thread::sleep_for(chrono::milliseconds(1000));
+                // this_thread::sleep_for(chrono::milliseconds(1000));
                 ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
             }
         } else {

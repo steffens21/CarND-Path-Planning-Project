@@ -228,12 +228,97 @@ vector<double> getXY(double s,
     return {x,y};
 }
 
+
+
+vector<double> getSDpos(double car_x,
+                        double car_y,
+                        double car_speed,
+                        double car_yaw,
+                        vector<double> previous_path_x,
+                        vector<double> previous_path_y,
+                        vector<double> map_waypoints_x,
+                        vector<double> map_waypoints_y) {
+    float MPH2MS = 0.44704; // factor for mph to m/s conversion
+    float TIME_STEP = 0.02;
+
+    double pos_x;
+    double pos_y;
+    double angle;
+    // Consider maximally 2 previous path points
+    int path_size = previous_path_x.size();
+    path_size = min(path_size, 2);
+    double pos_speed = 0;
+    double pos_accell = 0;
+
+    double pos_x2;
+    double pos_y2;
+
+    if(path_size == 0) {
+        pos_x = car_x;
+        pos_y = car_y;
+        angle = deg2rad(car_yaw);
+        //double car_accel = 0.0;
+        pos_speed = car_speed * MPH2MS;
+        pos_accell = 0;
+    }
+    else {
+        pos_x = previous_path_x[path_size];
+        pos_y = previous_path_y[path_size];
+
+        if(path_size >= 1) {
+            pos_x2 = previous_path_x[path_size-1];
+            pos_y2 = previous_path_y[path_size-1];
+            angle = atan2(pos_y-pos_y2,pos_x-pos_x2);
+            pos_speed = sqrt(pow(pos_x-pos_x2, 2)
+                             + pow(pos_y-pos_y2,2)) / TIME_STEP;
+            pos_speed *= MPH2MS;
+        }
+        else {
+            angle = deg2rad(car_yaw);
+            pos_speed = car_speed * MPH2MS;
+        }
+
+        if(path_size >= 2) {
+            double pos_x3 = previous_path_x[path_size - 2];
+            double pos_y3 = previous_path_y[path_size - 2];
+            double pos_speed2 = sqrt((pos_x2 - pos_x3)
+                                     * (pos_x2 - pos_x3)
+                                     + (pos_y2 - pos_y3)
+                                     * (pos_y2 - pos_y3)
+                                     ) / TIME_STEP;
+            pos_speed2 *= MPH2MS;
+            pos_accell = (pos_speed2 - pos_speed) / TIME_STEP;
+        }
+        else {
+            pos_accell = 0;
+        }
+    }
+
+    vector<double> sd = getFrenet(pos_x,
+                                  pos_y,
+                                  angle,
+                                  map_waypoints_x,
+                                  map_waypoints_y);
+    double pos_s = sd[0];
+    double pos_d = sd[1];
+
+    /*
+    int pos_next_wayp = NextWaypoint(pos_x,
+                                     pos_y,
+                                     angle,
+                                     map_waypoints_x,
+                                     map_waypoints_y);
+     */
+
+    return {pos_s, pos_d, pos_speed, pos_accell};
+}
+
 // Transform vehicle state of form [x, y, vx, vy, s, d]
 // to state of form [s, s_dot, s_dotdot, d, d_dot, d_dotdot]
 // Obviously the accellerations have to be assumed to be 0
 vector<double> transVehState(double x,
                              double y,
-                             double vx,
+                             double vx, //TODO is vx a vector??
                              double vy,
                              double s,
                              double d) {
@@ -292,5 +377,13 @@ float nearest_approach_to_any_vehicle(Trajectory traj,
     }
     return closest;
 }
+
+void log_vector(vector<double> v) {
+    for (int i=0; i<v.size(); i++) {
+        std::cout << v[i] << " ";
+    }
+    std::cout << std::endl;
+}
+
 
 

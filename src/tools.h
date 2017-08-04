@@ -49,6 +49,16 @@ vector<double> getXY(double s,
                      vector<double> maps_x,
                      vector<double> maps_y);
 
+// Transform x,y values to s,d vals and get speed and accell as well
+vector<double> getSDpos(double car_x,
+                        double car_y,
+                        double car_speed,
+                        double car_yaw,
+                        vector<double> previous_path_x,
+                        vector<double> previous_path_y,
+                        vector<double> map_waypoints_x,
+                        vector<double> map_waypoints_y);
+
 // Transform vehicle state of form [x, y, vx, vy, s, d]
 // to state of form [s, s_dot, s_dotdot, d, d_dot, d_dotdot]
 vector<double> transVehState(double x,
@@ -65,6 +75,8 @@ float nearest_approach(Trajectory traj,
 
 float nearest_approach_to_any_vehicle(Trajectory traj,
                                       vector<Vehicle> vehicles);
+
+void log_vector(vector<double> v);
 
 
 #endif /* TOOLS_H_ */
