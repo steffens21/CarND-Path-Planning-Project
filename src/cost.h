@@ -51,9 +51,7 @@ float exceeds_speed_limit_cost(Trajectory traj,
 float efficiency_cost(Trajectory traj,
                       vector<Vehicle> predictions);
 
-  /*
-    
-   */
+
 float max_accel_cost(Trajectory traj,
                      vector<Vehicle> predictions);
 

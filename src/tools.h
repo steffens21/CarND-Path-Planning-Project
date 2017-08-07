@@ -10,6 +10,10 @@
 #include <math.h>
 #include "spline.h"
 #include "veh.h"
+#include "Eigen-3.3/Eigen/Core"
+#include "Eigen-3.3/Eigen/QR"
+#include "Eigen-3.3/Eigen/Dense"
+
 
 double deg2rad(double x);
 double rad2deg(double x);
@@ -78,5 +82,10 @@ float nearest_approach_to_any_vehicle(Trajectory traj,
 
 void log_vector(vector<double> v);
 
+double logistic(double x);
+
+vector<double> differentiate(vector<double> coeff);
+
+vector<double> JMT(vector< double> start, vector <double> end, double T);
 
 #endif /* TOOLS_H_ */
