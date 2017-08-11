@@ -188,12 +188,13 @@ int main() {
                 vector<double> next_x_vals;
                 vector<double> next_y_vals;
 
-                for(int i = 0; i < min(path_size, 30); i++){
+                for(int i = 0; i < path_size; i++){
                     next_x_vals.push_back(previous_path_x[i]);
                     next_y_vals.push_back(previous_path_y[i]);
                 }
 
-                for (int i=0; i < ptg.next_s_vals.size(); i++) {
+                //for (int i=0; i < (50 - path_size)ptg.next_s_vals.size(); i++) {
+                for (int i=0; i < (50 - path_size); i++) {
                     vector<double> result = getXY(ptg.next_s_vals[i],
                                                   ptg.next_d_vals[i],
                                                   map_waypoints_s,
@@ -212,15 +213,15 @@ int main() {
                         << " " << next_y_vals[i]
                         << " " << std::endl;
                         if (i>0) {
-                            double speed = sqrt(
-                                                pow(next_x_vals[i] - next_x_vals[i-1], 2)
-                                                + pow(next_y_vals[i] - next_y_vals[i-1], 2)
-                                                ) / 0.02;
+                            double speed = distance(next_x_vals[i],
+                                                    next_y_vals[i],
+                                                    next_x_vals[i-1],
+                                                    next_y_vals[i-1]) / 0.02;
                             if (speed > 25) {
                                 std::cout << "BAD!!! " << i
                                 << " " << ptg.next_s_vals[i]
                                 << " " << ptg.next_s_vals[i-1]
-                                << " " << end_path_d << std::endl;
+                                << " " << ptg.next_d_vals[i] << std::endl;
                             }
                             if (speed < 5) {
                                 std::cout << "BAD!!! " << i << std::endl;

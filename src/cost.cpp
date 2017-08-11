@@ -25,6 +25,7 @@ float d_diff_cost(Trajectory traj,
 
 float collision_cost(Trajectory traj,
                      vector<Vehicle> predictions) {
+    std::cout << "considering " << predictions.size() << " other cars" << std::endl;
     double nearest = nearest_approach_to_any_vehicle(traj, predictions);
     if(nearest < 2 * VEHICLE_RADIUS) {
         return 1.0;
@@ -109,10 +110,10 @@ float total_jerk_cost(Trajectory traj,
     vector<double> s_dot_dot_coeff = differentiate(s_dot_coeff);
     vector<double> jerk_coeff = differentiate(s_dot_dot_coeff);
     double total_jerk = 0.0;
-    log_vector(jerk_coeff);
+    //log_vector(jerk_coeff);
     for (int i=0; i<100; i++){
         float jerk = eval_traj(jerk_coeff, traj.t / 100.0 * i);
-        std::cout << jerk << std::endl;
+        //std::cout << jerk << std::endl;
         total_jerk += abs(jerk);
     }
     double jerk_per_sec = total_jerk / traj.t;

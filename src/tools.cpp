@@ -253,7 +253,7 @@ vector<double> getSDpos(double car_x,
     double pos_y;
     double angle;
     int path_size = previous_path_x.size();
-    path_size = min(path_size, 30);
+    //path_size = min(path_size, 30);
     double pos_speed = 0;
     double pos_accell = 0;
 
@@ -276,8 +276,7 @@ vector<double> getSDpos(double car_x,
             pos_x2 = previous_path_x[path_size-2];
             pos_y2 = previous_path_y[path_size-2];
             angle = atan2(pos_y-pos_y2, pos_x-pos_x2);
-            pos_speed = sqrt(pow(pos_x - pos_x2, 2)
-                             + pow(pos_y - pos_y2,2)) / TIME_STEP;
+            pos_speed = distance(pos_x, pos_y, pos_x2, pos_y2) / TIME_STEP;
         }
         else {
             angle = deg2rad(car_yaw);
@@ -362,7 +361,7 @@ float nearest_approach(Trajectory traj,
         vector<double> new_state = vehicle.state_in(t);
         float targ_s = new_state[0];
         float targ_d = new_state[3];
-        float dist = sqrt( pow(cur_s-targ_s, 2) + pow(cur_d-targ_d, 2));
+        float dist = distance(cur_s, cur_d, targ_s, targ_d);
         if(dist < closest) {
             closest = dist;
         }
@@ -378,8 +377,10 @@ float nearest_approach_to_any_vehicle(Trajectory traj,
         float d = nearest_approach(traj, vehicles[i]);
         if(d < closest) {
             closest = d;
+            std::cout << "Vehicle " << i << " is closer" << std::endl;
         }
     }
+    std::cout << "Closets vehicle at " << closest << std::endl;
     return closest;
 }
 
@@ -391,8 +392,8 @@ void log_vector(vector<double> v) {
 }
 
 double logistic(double x) {
-    std::cout << "x " << x << "   logistic x " << 2.0 / (1.0 + exp(-x)) - 1.0 << std::endl;
-    std::cout << exp(-x) << std::endl;
+    //std::cout << "x " << x << "   logistic x " << 2.0 / (1.0 + exp(-x)) - 1.0 << std::endl;
+    //std::cout << exp(-x) << std::endl;
     return 2.0 / (1.0 + exp(-x)) - 1.0;
 }
 
@@ -453,4 +454,10 @@ vector<double> JMT(vector< double> start, vector <double> end, double T) {
 }
 
 
+vector<double> straight_traj(vector< double> start, vector <double> end, double T) {
+
+    vector <double> result = {start[0], (end[0] - start[0]) / T};
+
+    return result;
+}
 

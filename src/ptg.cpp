@@ -21,7 +21,7 @@ void PTG::generatePath() {
         vehicle.log_state();
     }
 
-    int NBR_PRED_POINTS = 50;
+    int NBR_PRED_POINTS = 100;
     float TIME_STEP = 0.02;
 
     float goal_T = NBR_PRED_POINTS * TIME_STEP;
@@ -44,10 +44,10 @@ void PTG::generatePath() {
             float g_s = goals_s[i];
             float g_d = goals_d[j];
 
-            vector<double> poly_coeff_s= JMT({my_s, my_speed, vehicle.state[2]},
+            vector<double> poly_coeff_s= straight_traj({my_s, my_speed, vehicle.state[2]},
                                              {g_s, target_speed, 0},
                                              goal_T);
-            vector<double> poly_coeff_d = JMT({my_d, vehicle.state[4], vehicle.state[4]},
+            vector<double> poly_coeff_d = straight_traj({my_d, vehicle.state[4], vehicle.state[4]},
                                               {g_d, 0, 0},
                                               goal_T);
 
@@ -94,7 +94,7 @@ void PTG::generatePath() {
 double PTG::calculate_cost(Trajectory traj){
     // TODO: tune weights after all cost functions are implemented
     double total_cost = 0.0;
-    total_cost += 100 * collision_cost(traj, other_cars);
+    total_cost += 1000 * collision_cost(traj, other_cars);
     std::cout << "collision_cost: " << collision_cost(traj, other_cars) << std::endl;
     total_cost += time_diff_cost(traj, other_cars);
     total_cost += s_diff_cost(traj, other_cars);

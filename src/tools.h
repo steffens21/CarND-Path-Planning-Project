@@ -88,4 +88,6 @@ vector<double> differentiate(vector<double> coeff);
 
 vector<double> JMT(vector< double> start, vector <double> end, double T);
 
+vector<double> straight_traj(vector< double> start, vector <double> end, double T);
+
 #endif /* TOOLS_H_ */
