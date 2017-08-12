@@ -204,6 +204,14 @@ int main() {
                                               map_waypoints_y);
                 double ref_s = sd[0];
                 double ref_d = sd[1];
+                double sd_yaw = sd[2];
+
+                //std::cout << "sd_yaw " << sd_yaw << std::endl;
+
+                bool large_yaw = false;
+                if (abs(sd_yaw) > 6.0) {
+                    large_yaw = true;
+                }
 
                 int ref_lane = 2;
                 if (ref_d < 4) {
@@ -260,11 +268,11 @@ int main() {
                 double ref_vel = car_speed;
 
                 if (slower) {
-                    ref_vel -= max(ref_vel * 0.025, 0.6);
+                    ref_vel -= max(ref_vel * 0.021, 0.4);
                     //std::cout << "break" << std::endl;
 
                 }
-                else if (ref_vel < 43) {
+                else if (ref_vel < 43 && !large_yaw) {
                     ref_vel += max(ref_vel * 0.04, 1.5);
                 }
 
