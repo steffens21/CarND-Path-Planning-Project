@@ -9,5 +9,30 @@ Some details:
 
 1) In each step we re-use the full previous path which has not yet been travelled.
 
-2) To decide the target lan and the target speed I use an FST which takes as input:
+2) To decide the target lane and the target speed we use an FST which takes as input:
 	- The car's s, d, and the yaw in (s, d)-coordinates
+	- The postion of all other cars
+	- The current speed
+   Essentially the FST determines first if we are already in the process of changing
+   lanes by looking at the current yaw.  If we are in the process of changing lanes we
+   just keep on with that process and don't accelerate.
+   
+   If we are not in the process of changing lanes we first check wether we can keep
+   driving in our lane by checking if we get too close to any other car in doing so.
+   If it's possible to stay in our lane we do that.  If we would come too close to
+   another car, we check whether changing lanes is feasible.  If so, we do it.
+   If no lane allows us to travel at the curent speed we slow down a bit.
+   
+   We also try to avoid lane changes when the car is very slow.
+   
+3) Once we decided on target lane and target speed we use the spline trick from the 
+   project walkthrough to generate a smooth path
+   
+General notes:
+I struggled for weeks with getting a no jerky trajectory and was only saved by the project
+ walkthrough.  Even though the project introduction mentioned splines it was totally
+ not obvious to me where to apply them.  I tried and failed to apply them in various
+ ways ...
+I also know it would have been nicer not to use an FST but instead, generated some random
+ paths and use cost functions to pick the best one.  But given how much time I struggled
+ with this project I simply wanted to get done and move on in the course. 

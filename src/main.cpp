@@ -208,7 +208,7 @@ int main() {
                 //std::cout << "sd_yaw " << sd_yaw << std::endl;
 
                 bool large_yaw = false;
-                if (abs(sd_yaw) > 3) {
+                if (abs(sd_yaw) > 3.5) {
                     large_yaw = true;
                 }
 
@@ -292,29 +292,29 @@ int main() {
                 double ref_vel = car_speed;
 
                 if (slower) {
-                    ref_vel -= max(ref_vel * 0.021, 0.5);
+                    ref_vel -= max(ref_vel * 0.019, 0.45);
                     //std::cout << "break" << std::endl;
 
                 }
-                else if (ref_vel < 42 && !large_yaw) {
+                else if (ref_vel < 40 && !large_yaw) {
                     ref_vel += max(ref_vel * 0.038, 1.5);
                 }
 
 
 
-                // In Frenet add evenly 35m spaced points ahead of the
+                // In Frenet add evenly 40m spaced points ahead of the
                 // starting reference
-                vector<double> next_wp0 = getXY(car_s + 35,
+                vector<double> next_wp0 = getXY(car_s + 40,
                                                 (2 + 4 * target_lane),
                                                 map_waypoints_s,
                                                 map_waypoints_x,
                                                 map_waypoints_y);
-                vector<double> next_wp1 = getXY(car_s + 70,
+                vector<double> next_wp1 = getXY(car_s + 80,
                                                 (2 + 4 * target_lane),
                                                 map_waypoints_s,
                                                 map_waypoints_x,
                                                 map_waypoints_y);
-                vector<double> next_wp2 = getXY(car_s +105,
+                vector<double> next_wp2 = getXY(car_s +120,
                                                 (2 + 4 * target_lane),
                                                 map_waypoints_s,
                                                 map_waypoints_x,
