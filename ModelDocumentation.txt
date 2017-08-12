@@ -1,0 +1,13 @@
+Model Documentation for Path Planning Project
+---------------------------------------------
+
+My submitted solution re-uses the provided project walk-through in large parts.  
+The main difference being that I use an FST to decide the target lane and the target 
+speed.
+
+Some details:
+
+1) In each step we re-use the full previous path which has not yet been travelled.
+
+2) To decide the target lan and the target speed I use an FST which takes as input:
+	- The car's s, d, and the yaw in (s, d)-coordinates
