@@ -209,7 +209,7 @@ int main() {
                 //std::cout << "sd_yaw " << sd_yaw << std::endl;
 
                 bool large_yaw = false;
-                if (abs(sd_yaw) > 6.0) {
+                if (abs(sd_yaw) > 4.0) {
                     large_yaw = true;
                 }
 
