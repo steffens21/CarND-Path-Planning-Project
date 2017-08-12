@@ -226,40 +226,60 @@ int main() {
                 int target_lane = ref_lane;
                 bool slower = false;
 
-                // if we can continue in this lane, stay
-                bool col = check_collision(ref_s,
-                                           ref_d,
-                                           other_cars,
-                                           path_size);
-                if (col) {
-                    slower = true;
-                    if (ref_lane > 0) {
-                        bool col = check_collision(ref_s,
-                                                   ref_d - 4,
-                                                   other_cars,
-                                                   path_size);
-                        if (!col) {
-                            target_lane = ref_lane - 1;
-                            slower = false;
+                if (large_yaw) {
+                    if (ref_d > 2 && ref_d < 6) {
+                        if (sd_yaw > 0) {
+                            target_lane = 1;
                         }
-                        else if (ref_lane < 2) {
+                        else {
+                            target_lane = 0;
+                        }
+                    }
+                    else if (ref_d > 6 && ref_d < 10) {
+                        if (sd_yaw > 0) {
+                            target_lane = 2;
+                        }
+                        else {
+                            target_lane = 1;
+                        }
+                    }
+                }
+                else {
+                    // if we can continue in this lane, stay
+                    bool col = check_collision(ref_s,
+                                               ref_d,
+                                               other_cars,
+                                               path_size);
+                    if (col) {
+                        slower = true;
+                        if (ref_lane > 0) {
+                            bool col = check_collision(ref_s,
+                                                       ref_d - 4,
+                                                       other_cars,
+                                                       path_size);
+                            if (!col) {
+                                target_lane = ref_lane - 1;
+                                slower = false;
+                            }
+                            else if (ref_lane < 2) {
+                                bool col = check_collision(ref_s,
+                                                           ref_d + 4,
+                                                           other_cars,
+                                                           path_size);
+                                if (!col) {
+                                    target_lane = ref_lane + 1;
+                                }
+                            }
+                        }
+                        else {
                             bool col = check_collision(ref_s,
                                                        ref_d + 4,
                                                        other_cars,
                                                        path_size);
                             if (!col) {
                                 target_lane = ref_lane + 1;
+                                slower = false;
                             }
-                        }
-                    }
-                    else {
-                        bool col = check_collision(ref_s,
-                                                   ref_d + 4,
-                                                   other_cars,
-                                                   path_size);
-                        if (!col) {
-                            target_lane = ref_lane + 1;
-                            slower = false;
                         }
                     }
                 }
