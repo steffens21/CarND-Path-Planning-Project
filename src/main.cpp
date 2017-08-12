@@ -18,7 +18,7 @@ using namespace std;
 using json = nlohmann::json;
 
 
-bool DEBUG = true;
+bool DEBUG = false;
 // Checks if the SocketIO event has JSON data.
 // If there is data the JSON object in string format will be returned,
 // else the empty string "" will be returned.
@@ -105,7 +105,6 @@ int main() {
                 double car_yaw = j[1]["yaw"];
                 double car_speed = j[1]["speed"];
 
-                /*
                 if (DEBUG) {
                     std::cout << " CAR STATE: (x,y) , (s,d), yaw, speed"
                               << std::endl;
@@ -116,7 +115,6 @@ int main() {
                               << "    " << car_yaw
                               << "   " << car_speed << std::endl;
                 }
-                 */
 
                 // Previous path data given to the Planner
                 auto previous_path_x = j[1]["previous_path_x"];
@@ -208,7 +206,7 @@ int main() {
                 //std::cout << "sd_yaw " << sd_yaw << std::endl;
 
                 bool large_yaw = false;
-                if (abs(sd_yaw) > 3.5) {
+                if (abs(sd_yaw) > 4.5) {
                     large_yaw = true;
                 }
 
@@ -228,18 +226,42 @@ int main() {
                 if (large_yaw) {
                     if (ref_d > 2 && ref_d < 6) {
                         if (sd_yaw > 0) {
-                            target_lane = 1;
+                            bool col = check_collision(ref_s,
+                                                       6,
+                                                       other_cars,
+                                                       path_size);
+                            if (!col) {
+                                target_lane = 1;
+                            }
                         }
                         else {
-                            target_lane = 0;
+                            bool col = check_collision(ref_s,
+                                                       2,
+                                                       other_cars,
+                                                       path_size);
+                            if (!col) {
+                                target_lane = 0;
+                            }
                         }
                     }
                     else if (ref_d > 6 && ref_d < 10) {
                         if (sd_yaw > 0) {
-                            target_lane = 2;
+                            bool col = check_collision(ref_s,
+                                                       10,
+                                                       other_cars,
+                                                       path_size);
+                            if (!col) {
+                                target_lane = 2;
+                            }
                         }
                         else {
-                            target_lane = 1;
+                            bool col = check_collision(ref_s,
+                                                       6,
+                                                       other_cars,
+                                                       path_size);
+                            if (!col) {
+                                target_lane = 1;
+                            }
                         }
                     }
                 }
@@ -253,7 +275,7 @@ int main() {
                         slower = true;
                         if (ref_lane > 0) {
                             bool col = check_collision(ref_s,
-                                                       ref_d - 4,
+                                                       (ref_lane + 1) * 4 + 2,
                                                        other_cars,
                                                        path_size);
                             if (!col) {
@@ -262,7 +284,7 @@ int main() {
                             }
                             else if (ref_lane < 2) {
                                 bool col = check_collision(ref_s,
-                                                           ref_d + 4,
+                                                           (ref_lane + 1) * 4 + 2,
                                                            other_cars,
                                                            path_size);
                                 if (!col) {
@@ -272,7 +294,7 @@ int main() {
                         }
                         else {
                             bool col = check_collision(ref_s,
-                                                       ref_d + 4,
+                                                       (ref_lane + 1) * 4 + 2,
                                                        other_cars,
                                                        path_size);
                             if (!col) {
