@@ -46,13 +46,10 @@ vector<double> getXY(double s,
                      vector<double> maps_x,
                      vector<double> maps_y);
 
-bool check_collision(float s,
-                     float d,
-                     float vx,
-                     float vy,
-                     int steps,
-                     double ref_s,
-                     double ref_d);
+bool check_collision(double ref_s,
+                     double ref_d,
+                     vector<Vehicle> other_cars,
+                     int steps);
 
 void log_vector(vector<double> v);
 

@@ -11,6 +11,7 @@
 #include "json.hpp"
 #include "tools.h"
 #include "spline.h"
+#include "veh.h"
 
 using namespace std;
 
@@ -105,6 +106,7 @@ int main() {
                 double car_yaw = j[1]["yaw"];
                 double car_speed = j[1]["speed"];
 
+                /*
                 if (DEBUG) {
                     std::cout << " CAR STATE: (x,y) , (s,d), yaw, speed"
                               << std::endl;
@@ -115,6 +117,7 @@ int main() {
                               << "    " << car_yaw
                               << "   " << car_speed << std::endl;
                 }
+                 */
 
                 // Previous path data given to the Planner
                 auto previous_path_x = j[1]["previous_path_x"];
@@ -181,6 +184,18 @@ int main() {
                     
                 }
 
+                // load vehicle data in more comvenient data container
+                vector<Vehicle> other_cars;
+                for(int i=0; i<sensor_fusion.size(); i++) {
+                    Vehicle veh = Vehicle(sensor_fusion[i][1],
+                                          sensor_fusion[i][2],
+                                          sensor_fusion[i][3],
+                                          sensor_fusion[i][4],
+                                          sensor_fusion[i][5],
+                                          sensor_fusion[i][6]);
+                    other_cars.push_back(veh);
+                }
+
                 // determine which lane the car is in
                 vector<double> sd = getFrenet(ref_x,
                                               ref_y,
@@ -198,57 +213,74 @@ int main() {
                     ref_lane = 1;
                 }
 
-                vector<Vehicle> close_cars;
+                int target_lane = ref_lane;
+                bool slower = false;
 
-                // if ref_lane is 0, check if we can keep driving forward
-                //if
-                bool too_close = false;
-                for(int i=0; i<sensor_fusion.size(); i++) {
-                    // only consider vehicles closer than X to car
-                    double dist_to_car = distance(car_x,
-                                                  car_y,
-                                                  sensor_fusion[i][1],
-                                                  sensor_fusion[i][2]);
-                    if (dist_to_car > 60) {
-                        continue;
+                // if we can continue in this lane, stay
+                bool col = check_collision(ref_s,
+                                           ref_d,
+                                           other_cars,
+                                           path_size);
+                if (col) {
+                    slower = true;
+                    if (ref_lane > 0) {
+                        bool col = check_collision(ref_s,
+                                                   ref_d - 4,
+                                                   other_cars,
+                                                   path_size);
+                        if (!col) {
+                            target_lane = ref_lane - 1;
+                            slower = false;
+                        }
+                        else if (ref_lane < 2) {
+                            bool col = check_collision(ref_s,
+                                                       ref_d + 4,
+                                                       other_cars,
+                                                       path_size);
+                            if (!col) {
+                                target_lane = ref_lane + 1;
+                            }
+                        }
                     }
-                    if (check_collision(sensor_fusion[i][5],
-                                        sensor_fusion[i][6],
-                                        sensor_fusion[i][3],
-                                        sensor_fusion[i][4],
-                                        path_size,
-                                        ref_s,
-                                        ref_d)){
-                        too_close = true;
-                        break;
+                    else {
+                        bool col = check_collision(ref_s,
+                                                   ref_d + 4,
+                                                   other_cars,
+                                                   path_size);
+                        if (!col) {
+                            target_lane = ref_lane + 1;
+                            slower = false;
+                        }
                     }
                 }
 
                 double ref_vel = car_speed;
 
-                if (too_close) {
-                    ref_vel -= .224;
+                if (slower) {
+                    ref_vel -= 1.5;
+                    //std::cout << "break" << std::endl;
+
                 }
-                else if (ref_vel < 45) {
-                    ref_vel += 2.224;
+                else if (ref_vel < 43.5) {
+                    ref_vel += max(ref_vel * 0.04, 1.3);
                 }
 
 
 
-                // In Frenet add evenly 30m soaced points ahead of the
+                // In Frenet add evenly 50m spaced points ahead of the
                 // starting reference
-                vector<double> next_wp0 = getXY(car_s + 30,
-                                                (2 + 4 * ref_lane),
+                vector<double> next_wp0 = getXY(car_s + 50,
+                                                (2 + 4 * target_lane),
                                                 map_waypoints_s,
                                                 map_waypoints_x,
                                                 map_waypoints_y);
-                vector<double> next_wp1 = getXY(car_s + 60,
-                                                (2 + 4 * ref_lane),
+                vector<double> next_wp1 = getXY(car_s + 100,
+                                                (2 + 4 * target_lane),
                                                 map_waypoints_s,
                                                 map_waypoints_x,
                                                 map_waypoints_y);
-                vector<double> next_wp2 = getXY(car_s + 90,
-                                                (2 + 4 * ref_lane),
+                vector<double> next_wp2 = getXY(car_s +150,
+                                                (2 + 4 * target_lane),
                                                 map_waypoints_s,
                                                 map_waypoints_x,
                                                 map_waypoints_y);
@@ -318,103 +350,6 @@ int main() {
                 }
                 
 
-
-
-
-                /*
-
-                int path_size = previous_path_x.size();
-                
-                vector<double> sa = getSDpos(car_x,
-                                             car_y,
-                                             car_speed,
-                                             car_yaw,
-                                             previous_path_x,
-                                             previous_path_y,
-                                             map_waypoints_x,
-                                             map_waypoints_y);
-                float pos_s = sa[0];
-                float pos_d = sa[1];
-                float pos_speed = sa[2];
-                float pos_accell = sa[3];
-                //int pos_next_wayp = sa[4]; // TODO: maybe not needed
-
-                // Create vehicle object for our vehicle
-                // Note: we assume d_dot and d_dot_dot to be 0
-                // Note: we tale the total speed as s speed
-                Vehicle pos_veh = Vehicle::Vehicle(-1,
-                                                   {pos_s, pos_speed, pos_accell,
-                                                    pos_d, 0, 0});
-                // Create a path trajectory generator (PTG) instance
-                PTG ptg(DEBUG);
-                ptg.vehicle = pos_veh;
-
-                for(int i=0; i<sensor_fusion.size(); i++) {
-                    // TODO: only consider vehicles closer than X to car
-                    int veh_id = sensor_fusion[i][0];
-                    Vehicle veh = Vehicle(veh_id,
-                                          transVehState(
-                                                        sensor_fusion[i][1],
-                                                        sensor_fusion[i][2],
-                                                        sensor_fusion[i][3],
-                                                        sensor_fusion[i][4],
-                                                        sensor_fusion[i][5],
-                                                        sensor_fusion[i][6]
-                                                        )
-                                          );
-                    ptg.other_cars.push_back(veh);
-                }
-
-                ptg.generatePath();//map_waypoints_s[pos_next_wayp);
-
-
-                vector<double> next_x_vals;
-                vector<double> next_y_vals;
-
-                for(int i = 0; i < path_size; i++){
-                    next_x_vals.push_back(previous_path_x[i]);
-                    next_y_vals.push_back(previous_path_y[i]);
-                }
-
-                //for (int i=0; i < (50 - path_size)ptg.next_s_vals.size(); i++) {
-                for (int i=0; i < (50 - path_size); i++) {
-                    vector<double> result = getXY(ptg.next_s_vals[i],
-                                                  ptg.next_d_vals[i],
-                                                  map_waypoints_s,
-                                                  map_waypoints_x,
-                                                  map_waypoints_y);
-                    next_x_vals.push_back(result[0]);
-                    next_y_vals.push_back(result[1]);
-                    //if (DEBUG) {
-                    //    log_vector(result);
-                    //}
-                }
-
-                if (DEBUG) {
-                    for(int i=0; i<next_x_vals.size();i++) {
-                        std::cout << "     *** " << next_x_vals[i]
-                        << " " << next_y_vals[i]
-                        << " " << std::endl;
-                        if (i>0) {
-                            double speed = distance(next_x_vals[i],
-                                                    next_y_vals[i],
-                                                    next_x_vals[i-1],
-                                                    next_y_vals[i-1]) / 0.02;
-                            if (speed > 25) {
-                                std::cout << "BAD!!! " << i
-                                << " " << ptg.next_s_vals[i]
-                                << " " << ptg.next_s_vals[i-1]
-                                << " " << ptg.next_d_vals[i] << std::endl;
-                            }
-                            if (speed < 5) {
-                                std::cout << "BAD!!! " << i << std::endl;
-                            }
-                            std::cout << "                                  "
-                            << speed  << std::endl;
-                        }
-                    }
-                }
-                */
                 msgJson["next_x"] = next_x_vals;
                 msgJson["next_y"] = next_y_vals;
 

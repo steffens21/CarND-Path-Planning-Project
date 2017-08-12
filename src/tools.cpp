@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <math.h>
 #include "tools.h"
+#include "veh.h"
 
 #include "Eigen-3.3/Eigen/Core"
 #include "Eigen-3.3/Eigen/QR"
@@ -161,20 +162,22 @@ vector<double> getXY(double s,
     return {x,y};
 }
 
-bool check_collision(float s,
-                     float d,
-                     float vx,
-                     float vy,
-                     int steps,
-                     double ref_s,
-                     double ref_d) {
-    if (abs(d - ref_d) > 3.5) {
-        return false;
-    }
-    double veh_speed = sqrt(vx * vx + vy * vy);
-    double s_future = s + steps * .02 * veh_speed;
-    if ((s_future > ref_s) && (s_future - ref_s < 30)) {
-        return true;
+
+bool check_collision(double ref_s,
+                     double ref_d,
+                     vector<Vehicle> other_cars,
+                     int steps) {
+
+    for(int i=0; i<other_cars.size(); i++) {
+        Vehicle veh = other_cars[i];
+        if (abs(veh.d - ref_d) > 2.8) {
+            continue;
+        }
+        double veh_speed = sqrt(veh.vx * veh.vx + veh.vy * veh.vy);
+        double s_future = veh.s + steps * .02 * veh_speed;
+        if ((s_future > ref_s - 5) && (s_future - ref_s < 30)) {
+            return true;
+        }
     }
     return false;
 }
