@@ -213,6 +213,8 @@ int main() {
                     ref_lane = 1;
                 }
 
+                // FST to decide target lane
+
                 int target_lane = ref_lane;
                 bool slower = false;
 
@@ -254,6 +256,7 @@ int main() {
                     }
                 }
 
+                // Adpat speed
                 double ref_vel = car_speed;
 
                 if (slower) {

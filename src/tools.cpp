@@ -175,7 +175,7 @@ bool check_collision(double ref_s,
         }
         double veh_speed = sqrt(veh.vx * veh.vx + veh.vy * veh.vy);
         double s_future = veh.s + steps * .02 * veh_speed;
-        if ((s_future > ref_s - 8) && (s_future - ref_s < 35)) {
+        if ((s_future > ref_s - 8) && (s_future - ref_s < 28)) {
             return true;
         }
     }
