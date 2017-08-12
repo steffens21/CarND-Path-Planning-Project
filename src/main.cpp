@@ -257,29 +257,29 @@ int main() {
                 double ref_vel = car_speed;
 
                 if (slower) {
-                    ref_vel -= 1.5;
+                    ref_vel -= max(ref_vel * 0.025, 0.6);
                     //std::cout << "break" << std::endl;
 
                 }
-                else if (ref_vel < 43.5) {
-                    ref_vel += max(ref_vel * 0.04, 1.3);
+                else if (ref_vel < 43) {
+                    ref_vel += max(ref_vel * 0.04, 1.5);
                 }
 
 
 
-                // In Frenet add evenly 50m spaced points ahead of the
+                // In Frenet add evenly 40m spaced points ahead of the
                 // starting reference
-                vector<double> next_wp0 = getXY(car_s + 50,
+                vector<double> next_wp0 = getXY(car_s + 40,
                                                 (2 + 4 * target_lane),
                                                 map_waypoints_s,
                                                 map_waypoints_x,
                                                 map_waypoints_y);
-                vector<double> next_wp1 = getXY(car_s + 100,
+                vector<double> next_wp1 = getXY(car_s + 80,
                                                 (2 + 4 * target_lane),
                                                 map_waypoints_s,
                                                 map_waypoints_x,
                                                 map_waypoints_y);
-                vector<double> next_wp2 = getXY(car_s +150,
+                vector<double> next_wp2 = getXY(car_s +120,
                                                 (2 + 4 * target_lane),
                                                 map_waypoints_s,
                                                 map_waypoints_x,

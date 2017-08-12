@@ -170,12 +170,12 @@ bool check_collision(double ref_s,
 
     for(int i=0; i<other_cars.size(); i++) {
         Vehicle veh = other_cars[i];
-        if (abs(veh.d - ref_d) > 2.8) {
+        if (abs(veh.d - ref_d) > 2.3) {
             continue;
         }
         double veh_speed = sqrt(veh.vx * veh.vx + veh.vy * veh.vy);
         double s_future = veh.s + steps * .02 * veh_speed;
-        if ((s_future > ref_s - 5) && (s_future - ref_s < 30)) {
+        if ((s_future > ref_s - 8) && (s_future - ref_s < 35)) {
             return true;
         }
     }
