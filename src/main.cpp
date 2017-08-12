@@ -1,5 +1,4 @@
 #include <fstream>
-#include <math.h>
 #include <uWS/uWS.h>
 #include <chrono>
 #include <iostream>
@@ -209,7 +208,7 @@ int main() {
                 //std::cout << "sd_yaw " << sd_yaw << std::endl;
 
                 bool large_yaw = false;
-                if (abs(sd_yaw) > 4.0) {
+                if (abs(sd_yaw) > 3.0) {
                     large_yaw = true;
                 }
 
@@ -284,16 +283,16 @@ int main() {
                     }
                 }
 
-                // Adpat speed
+                // Adapt speed
                 double ref_vel = car_speed;
 
                 if (slower) {
-                    ref_vel -= max(ref_vel * 0.021, 0.4);
+                    ref_vel -= max(ref_vel * 0.021, 0.5);
                     //std::cout << "break" << std::endl;
 
                 }
                 else if (ref_vel < 43 && !large_yaw) {
-                    ref_vel += max(ref_vel * 0.04, 1.5);
+                    ref_vel += max(ref_vel * 0.04, 1.4);
                 }
 
 

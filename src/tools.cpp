@@ -1,22 +1,13 @@
-#include <fstream>
 #include <math.h>
-#include <iostream>
-#include <thread>
 #include <vector>
+#include <iostream>
 #include <cmath>
 #include <algorithm>
 #include <math.h>
 #include "tools.h"
 #include "veh.h"
 
-#include "Eigen-3.3/Eigen/Core"
-#include "Eigen-3.3/Eigen/QR"
-#include "Eigen-3.3/Eigen/Dense"
-
-
 using namespace std;
-using Eigen::MatrixXd;
-using Eigen::VectorXd;
 
 
 // For converting back and forth between radians and degrees.
@@ -171,12 +162,12 @@ bool check_collision(double ref_s,
 
     for(int i=0; i<other_cars.size(); i++) {
         Vehicle veh = other_cars[i];
-        if (abs(veh.d - ref_d) > 2.3) {
+        if (abs(veh.d - ref_d) > 3) {
             continue;
         }
         double veh_speed = sqrt(veh.vx * veh.vx + veh.vy * veh.vy);
         double s_future = veh.s + steps * .02 * veh_speed;
-        if ((s_future > ref_s - 9) && (s_future - ref_s < 33)) {
+        if ((s_future > ref_s - 10) && (s_future - ref_s < 33)) {
             return true;
         }
     }
@@ -191,20 +182,6 @@ void log_vector(vector<double> v) {
         std::cout << v[i] << " ";
     }
     std::cout << std::endl;
-}
-
-double logistic(double x) {
-    //std::cout << "x " << x << "   logistic x " << 2.0 / (1.0 + exp(-x)) - 1.0 << std::endl;
-    //std::cout << exp(-x) << std::endl;
-    return 2.0 / (1.0 + exp(-x)) - 1.0;
-}
-
-vector<double> differentiate(vector<double> coeff) {
-    vector<double> new_coeff;
-    for (int i=1; i<coeff.size(); i++) {
-        new_coeff.push_back(i*coeff[i]);
-    }
-    return new_coeff;
 }
 
 

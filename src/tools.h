@@ -1,18 +1,12 @@
 #ifndef TOOLS_H_
 #define TOOLS_H_
-#include <fstream>
 #include <math.h>
 #include <iostream>
-#include <thread>
 #include <vector>
 #include <cmath>
 #include <algorithm>
 #include <math.h>
-#include "spline.h"
 #include "veh.h"
-#include "Eigen-3.3/Eigen/Core"
-#include "Eigen-3.3/Eigen/QR"
-#include "Eigen-3.3/Eigen/Dense"
 
 
 double deg2rad(double x);
@@ -46,17 +40,12 @@ vector<double> getXY(double s,
                      vector<double> maps_x,
                      vector<double> maps_y);
 
+// Check if we get too close to any other vehicle on the raod
 bool check_collision(double ref_s,
                      double ref_d,
                      vector<Vehicle> other_cars,
                      int steps);
 
 void log_vector(vector<double> v);
-
-double logistic(double x);
-
-vector<double> differentiate(vector<double> coeff);
-
-vector<double> straight_traj(vector< double> start, vector <double> end, double T);
 
 #endif /* TOOLS_H_ */
