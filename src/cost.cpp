@@ -23,15 +23,6 @@ float d_diff_cost(Trajectory traj,
     return 0.0;
 }
 
-float collision_cost(Trajectory traj,
-                     vector<Vehicle> predictions) {
-    std::cout << "considering " << predictions.size() << " other cars" << std::endl;
-    double nearest = nearest_approach_to_any_vehicle(traj, predictions);
-    if(nearest < 2 * VEHICLE_RADIUS) {
-        return 1.0;
-    }
-    return 0.0;
-}
 
 float buffer_cost(Trajectory traj,
                   vector<Vehicle> predictions) {

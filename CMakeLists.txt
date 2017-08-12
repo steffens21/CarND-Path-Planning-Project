@@ -8,10 +8,7 @@ set(CXX_FLAGS "-Wall")
 set(CMAKE_CXX_FLAGS, "${CXX_FLAGS}")
 
 set(sources
-    src/veh.cpp
     src/tools.cpp
-    src/cost.cpp
-    src/ptg.cpp
     src/main.cpp)
 
 

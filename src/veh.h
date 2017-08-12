@@ -8,7 +8,7 @@ class Vehicle {
         /**
          * Constructor.
          */
-        Vehicle(int id, vector<double> start_state);
+        Vehicle(vector<double> start_state);
 
         /**
          * Destructor.
@@ -16,21 +16,17 @@ class Vehicle {
         virtual ~Vehicle();
 
         /**
-         * Vehicle id
-         */
-        int id;
-
-        /**
          * Vehicle state
          */
-        vector<double> state;
+        int id;
+        float x;
+        float y;
+        float vx;
+        float vy;
+        float s;
+        float d;
 
-        /**
-         * Return state of vehicle in t sec
-         */
-        vector<double> state_in(double t);
-
-      void log_state();
+    bool check_collision(int steps, double ref_s, double ref_d);
 };
 
 class Trajectory {
