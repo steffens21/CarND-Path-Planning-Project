@@ -1,6 +1,5 @@
 #ifndef TOOLS_H_
 #define TOOLS_H_
-#include <math.h>
 #include <iostream>
 #include <vector>
 #include <cmath>

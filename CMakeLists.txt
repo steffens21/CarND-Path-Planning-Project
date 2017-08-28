@@ -10,6 +10,7 @@ set(CMAKE_CXX_FLAGS, "${CXX_FLAGS}")
 set(sources
     src/veh.cpp
     src/tools.cpp
+    src/path_gen.cpp
     src/main.cpp)
 
 
