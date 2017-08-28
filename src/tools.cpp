@@ -165,6 +165,9 @@ bool check_collision(double ref_s,
         if (abs(veh.d - ref_d) > 3.2) {
             continue;
         }
+        if (abs(veh.s - ref_s) > 40) {
+            continue;
+        }
         double veh_speed = sqrt(veh.vx * veh.vx + veh.vy * veh.vy);
         double s_future = veh.s + steps * .02 * veh_speed;
         if ((s_future > ref_s - 10) && (s_future - ref_s < 30)) {
@@ -174,7 +177,132 @@ bool check_collision(double ref_s,
     return false;
 }
 
+vector<double> getTargetSpeedAndLane(double ref_s,
+                                     double ref_d,
+                                     double sd_yaw,
+                                     double car_speed,
+                                     vector<Vehicle> other_cars,
+                                     int path_size) {
 
+    bool large_yaw = false;
+    if (abs(sd_yaw) > 3.0) {
+        large_yaw = true;
+    }
+
+    int ref_lane = 2;
+    if (ref_d < 4) {
+        ref_lane = 0;
+    }
+    else if (ref_d < 8) {
+        ref_lane = 1;
+    }
+
+    // FST to decide target lane
+
+    double target_lane = ref_lane;
+    bool slower = false;
+
+    if (large_yaw) {
+        if (ref_d > 2 && ref_d < 6) {
+            if (sd_yaw > 0) {
+                bool col = check_collision(ref_s,
+                                           6,
+                                           other_cars,
+                                           path_size);
+                if (!col) {
+                    target_lane = 1;
+                }
+            }
+            else {
+                bool col = check_collision(ref_s,
+                                           2,
+                                           other_cars,
+                                           path_size);
+                if (!col) {
+                    target_lane = 0;
+                }
+            }
+        }
+        else if (ref_d > 6 && ref_d < 10) {
+            if (sd_yaw > 0) {
+                bool col = check_collision(ref_s,
+                                           10,
+                                           other_cars,
+                                           path_size);
+                if (!col) {
+                    target_lane = 2;
+                }
+            }
+            else {
+                bool col = check_collision(ref_s,
+                                           6,
+                                           other_cars,
+                                           path_size);
+                if (!col) {
+                    target_lane = 1;
+                }
+            }
+        }
+    }
+    else {
+        // if we can continue in this lane, stay
+        bool col = check_collision(ref_s,
+                                   ref_d,
+                                   other_cars,
+                                   path_size);
+        if (col) {
+            slower = true;
+            if (ref_lane > 0) {
+                bool col = check_collision(ref_s,
+                                           (ref_lane + 1) * 4 + 2,
+                                           other_cars,
+                                           path_size);
+                if (!col) {
+                    target_lane = ref_lane - 1;
+                    slower = false;
+                }
+                else if (ref_lane < 2) {
+                    bool col = check_collision(ref_s,
+                                               (ref_lane + 1) * 4 + 2,
+                                               other_cars,
+                                               path_size);
+                    if (!col) {
+                        target_lane = ref_lane + 1;
+                    }
+                }
+            }
+            else {
+                bool col = check_collision(ref_s,
+                                           (ref_lane + 1) * 4 + 2,
+                                           other_cars,
+                                           path_size);
+                if (!col) {
+                    target_lane = ref_lane + 1;
+                    slower = false;
+                }
+            }
+        }
+        
+        // don't change lanes when you are slow
+        if (car_speed < 15) {
+            target_lane = ref_lane;
+        }
+    }
+    
+    // Adapt speed
+    double ref_vel = car_speed;
+    
+    if (slower) {
+        ref_vel -= max(ref_vel * 0.019, 0.45);
+        //std::cout << "break" << std::endl;
+        
+    }
+    else if (ref_vel < 40 && !large_yaw) {
+        ref_vel += max(ref_vel * 0.038, 1.5);
+    }
+    
+    return {ref_vel, target_lane};
+}
 
 
 void log_vector(vector<double> v) {

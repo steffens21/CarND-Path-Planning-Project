@@ -205,124 +205,17 @@ int main() {
 
                 //std::cout << "sd_yaw " << sd_yaw << std::endl;
 
-                bool large_yaw = false;
-                if (abs(sd_yaw) > 3.0) {
-                    large_yaw = true;
-                }
-
-                int ref_lane = 2;
-                if (ref_d < 4) {
-                    ref_lane = 0;
-                }
-                else if (ref_d < 8) {
-                    ref_lane = 1;
-                }
-
-                // FST to decide target lane
-
-                int target_lane = ref_lane;
-                bool slower = false;
-
-                if (large_yaw) {
-                    if (ref_d > 2 && ref_d < 6) {
-                        if (sd_yaw > 0) {
-                            bool col = check_collision(ref_s,
-                                                       6,
-                                                       other_cars,
-                                                       path_size);
-                            if (!col) {
-                                target_lane = 1;
-                            }
-                        }
-                        else {
-                            bool col = check_collision(ref_s,
-                                                       2,
-                                                       other_cars,
-                                                       path_size);
-                            if (!col) {
-                                target_lane = 0;
-                            }
-                        }
-                    }
-                    else if (ref_d > 6 && ref_d < 10) {
-                        if (sd_yaw > 0) {
-                            bool col = check_collision(ref_s,
-                                                       10,
-                                                       other_cars,
-                                                       path_size);
-                            if (!col) {
-                                target_lane = 2;
-                            }
-                        }
-                        else {
-                            bool col = check_collision(ref_s,
-                                                       6,
-                                                       other_cars,
-                                                       path_size);
-                            if (!col) {
-                                target_lane = 1;
-                            }
-                        }
-                    }
-                }
-                else {
-                    // if we can continue in this lane, stay
-                    bool col = check_collision(ref_s,
-                                               ref_d,
-                                               other_cars,
-                                               path_size);
-                    if (col) {
-                        slower = true;
-                        if (ref_lane > 0) {
-                            bool col = check_collision(ref_s,
-                                                       (ref_lane + 1) * 4 + 2,
-                                                       other_cars,
-                                                       path_size);
-                            if (!col) {
-                                target_lane = ref_lane - 1;
-                                slower = false;
-                            }
-                            else if (ref_lane < 2) {
-                                bool col = check_collision(ref_s,
-                                                           (ref_lane + 1) * 4 + 2,
-                                                           other_cars,
-                                                           path_size);
-                                if (!col) {
-                                    target_lane = ref_lane + 1;
-                                }
-                            }
-                        }
-                        else {
-                            bool col = check_collision(ref_s,
-                                                       (ref_lane + 1) * 4 + 2,
-                                                       other_cars,
-                                                       path_size);
-                            if (!col) {
-                                target_lane = ref_lane + 1;
-                                slower = false;
-                            }
-                        }
-                    }
-
-                    // don't change lanes when you are slow
-                    if (car_speed < 15) {
-                        target_lane = ref_lane;
-                    }
-                }
-
-                // Adapt speed
-                double ref_vel = car_speed;
-
-                if (slower) {
-                    ref_vel -= max(ref_vel * 0.019, 0.45);
-                    //std::cout << "break" << std::endl;
-
-                }
-                else if (ref_vel < 40 && !large_yaw) {
-                    ref_vel += max(ref_vel * 0.038, 1.5);
-                }
 
 
+                vector<double> result = getTargetSpeedAndLane(ref_s,
+                                                              ref_d,
+                                                              sd_yaw,
+                                                              car_speed,
+                                                              other_cars,
+                                                              path_size);
+
+                double ref_vel = result[0];
+                double target_lane = result[1];
 
                 // In Frenet add evenly 40m spaced points ahead of the
                 // starting reference

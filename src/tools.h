@@ -46,6 +46,13 @@ bool check_collision(double ref_s,
                      vector<Vehicle> other_cars,
                      int steps);
 
+vector<double> getTargetSpeedAndLane(double ref_s,
+                                     double ref_d,
+                                     double sd_yaw,
+                                     double car_speed,
+                                     vector<Vehicle> other_cars,
+                                     int path_size);
+
 void log_vector(vector<double> v);
 
 #endif /* TOOLS_H_ */
