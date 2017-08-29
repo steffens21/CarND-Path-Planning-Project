@@ -36,6 +36,8 @@ public:
                   vector<double> maps_s,
                   vector<double> maps_x,
                   vector<double> maps_y);
+
+    double path_cost();
 };
 
 #endif /* path_gen_h */

@@ -115,6 +115,10 @@ void Path::generate(double target_lane,
         x_vals.push_back(x_point);
         y_vals.push_back(y_point);
     }
+}
 
+double Path::path_cost() {
+    double total_cost = 0.0;
 
+    return total_cost;
 }

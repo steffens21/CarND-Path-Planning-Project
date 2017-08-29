@@ -19,7 +19,7 @@ using namespace std;
 using json = nlohmann::json;
 
 
-bool DEBUG = false;
+bool DEBUG = true;
 // Checks if the SocketIO event has JSON data.
 // If there is data the JSON object in string format will be returned,
 // else the empty string "" will be returned.
@@ -150,6 +150,7 @@ int main() {
                 double ref_x = car_x;
                 double ref_y = car_y;
                 double ref_yaw = deg2rad(car_yaw);
+                double ref_speed = car_speed;
 
                 // If previous path is small, use car as starting reference
                 if (path_size < 2) {
@@ -166,7 +167,7 @@ int main() {
                 }
                 else {
                     ref_x = previous_path_x[path_size - 1];
-                    ref_y = previous_path_y[path_size-1];
+                    ref_y = previous_path_y[path_size - 1];
 
                     double ref_x_prev = previous_path_x[path_size - 2];
                     double ref_y_prev = previous_path_y[path_size - 2];
@@ -179,6 +180,11 @@ int main() {
                     
                     ptsy.push_back(ref_y_prev);
                     ptsy.push_back(ref_y);
+
+                    ref_speed = sqrt((ref_x_prev - ref_x)
+                                     * (ref_x_prev - ref_x)
+                                     + (ref_y_prev - ref_y)
+                                     * (ref_y_prev - ref_y)) / 0.02 * 2.237;
                     
                 }
 
@@ -202,26 +208,35 @@ int main() {
                                               map_waypoints_y);
                 double ref_s = sd[0];
                 double ref_d = sd[1];
-                double sd_yaw = sd[2];
+                double ref_sd_yaw = sd[2];
 
-                //std::cout << "sd_yaw " << sd_yaw << std::endl;
+                //std::cout << "ref_sd_yaw " << ref_sd_yaw << std::endl;
 
 
+                if (DEBUG) {
+                    std::cout << "Ref velo: " << ref_speed << std::endl;
+                }
 
+
+                // compare ref_d and car_d to determine if we are changing lanes
                 vector<double> result = getTargetSpeedAndLane(ref_s,
                                                               ref_d,
-                                                              sd_yaw,
-                                                              car_speed,
+                                                              car_d - ref_d,
+                                                              ref_speed,
                                                               other_cars,
                                                               path_size);
 
-                double ref_vel = result[0];
+                double target_vel = result[0];
                 double target_lane = result[1];
+
+                if (DEBUG) {
+                    std::cout << "Target velo and lane: " << target_vel << " " << target_lane << std::endl;
+                }
 
                 // generate smooth path
                 Path p = Path();
                 p.generate(target_lane,
-                           ref_vel,
+                           target_vel,
                            ptsx[0],
                            ptsx[1],
                            ptsy[0],
@@ -250,6 +265,9 @@ int main() {
 
                 msgJson["next_x"] = next_x_vals;
                 msgJson["next_y"] = next_y_vals;
+
+                // TODO: try to pass custom info to next iteration
+                //msgJson["fooflag"] =
 
                 auto msg = "42[\"control\","+ msgJson.dump()+"]";
 

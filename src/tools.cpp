@@ -154,7 +154,7 @@ vector<double> getXY(double s,
     return {x,y};
 }
 
-
+// TODO: does not work right!!
 bool check_collision(double ref_s,
                      double ref_d,
                      vector<Vehicle> other_cars,
@@ -162,15 +162,19 @@ bool check_collision(double ref_s,
 
     for(int i=0; i<other_cars.size(); i++) {
         Vehicle veh = other_cars[i];
-        if (abs(veh.d - ref_d) > 3.2) {
+        if (veh.d < ref_d - 2 || veh.d > ref_d + 2) {
             continue;
         }
-        if (abs(veh.s - ref_s) > 40) {
+        if (abs(veh.s - ref_s) > 200) {
             continue;
         }
         double veh_speed = sqrt(veh.vx * veh.vx + veh.vy * veh.vy);
         double s_future = veh.s + steps * .02 * veh_speed;
-        if ((s_future > ref_s - 10) && (s_future - ref_s < 30)) {
+        // if same lane but behind, no problemo
+        if (abs(veh.d - ref_d) < 2 && ref_s > s_future) {
+            continue;
+        }
+        if (s_future - ref_s < 30) {
             return true;
         }
     }
@@ -179,17 +183,18 @@ bool check_collision(double ref_s,
 
 vector<double> getTargetSpeedAndLane(double ref_s,
                                      double ref_d,
-                                     double sd_yaw,
-                                     double car_speed,
+                                     double d_diff,
+                                     double ref_speed,
                                      vector<Vehicle> other_cars,
                                      int path_size) {
 
-    bool large_yaw = false;
-    if (abs(sd_yaw) > 3.0) {
-        large_yaw = true;
+    bool within_switch = false;
+    if (abs(d_diff) > 2.0) {
+        within_switch = true;
     }
+    // TODO: also if previous path has large yaw we want to set this flag
 
-    int ref_lane = 2;
+    double ref_lane = 2.0;
     if (ref_d < 4) {
         ref_lane = 0;
     }
@@ -202,52 +207,30 @@ vector<double> getTargetSpeedAndLane(double ref_s,
     double target_lane = ref_lane;
     bool slower = false;
 
-    if (large_yaw) {
+    // if we are in the middle of a lane change, continue lan change
+    if (within_switch) {
         if (ref_d > 2 && ref_d < 6) {
-            if (sd_yaw > 0) {
-                bool col = check_collision(ref_s,
-                                           6,
-                                           other_cars,
-                                           path_size);
-                if (!col) {
-                    target_lane = 1;
-                }
+            if (d_diff > 0) {
+                target_lane = 1;
             }
             else {
-                bool col = check_collision(ref_s,
-                                           2,
-                                           other_cars,
-                                           path_size);
-                if (!col) {
-                    target_lane = 0;
-                }
+                target_lane = 0;
             }
         }
         else if (ref_d > 6 && ref_d < 10) {
-            if (sd_yaw > 0) {
-                bool col = check_collision(ref_s,
-                                           10,
-                                           other_cars,
-                                           path_size);
-                if (!col) {
-                    target_lane = 2;
-                }
+            if (d_diff > 0) {
+                target_lane = 2;
             }
             else {
-                bool col = check_collision(ref_s,
-                                           6,
-                                           other_cars,
-                                           path_size);
-                if (!col) {
-                    target_lane = 1;
-                }
+                target_lane = 1;
             }
+
         }
     }
     else {
         // if we can continue in this lane, stay
         bool col = check_collision(ref_s,
-                                   ref_d,
+                                   ref_lane,
                                    other_cars,
                                    path_size);
         if (col) {
@@ -284,24 +267,27 @@ vector<double> getTargetSpeedAndLane(double ref_s,
         }
         
         // don't change lanes when you are slow
-        if (car_speed < 15) {
+        if (ref_speed < 20) {
             target_lane = ref_lane;
         }
     }
     
     // Adapt speed
-    double ref_vel = car_speed;
+    double target_vel = ref_speed;
     
     if (slower) {
-        ref_vel -= max(ref_vel * 0.019, 0.45);
-        //std::cout << "break" << std::endl;
+        // TODO: this is not good
+        target_vel -= 0.02 * (50 - path_size);
+        target_vel = max(5.0, target_vel);
+        std::cout << "break" << std::endl;
         
     }
-    else if (ref_vel < 40 && !large_yaw) {
-        ref_vel += max(ref_vel * 0.038, 1.5);
+    else if (target_vel < 49 && !within_switch) {
+        target_vel += 0.19 * (50 - path_size);
+        target_vel = min(49.5, target_vel);
     }
     
-    return {ref_vel, target_lane};
+    return {target_vel, target_lane};
 }
 
 
