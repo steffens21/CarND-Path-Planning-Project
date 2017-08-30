@@ -154,28 +154,6 @@ vector<double> getXY(double s,
     return {x,y};
 }
 
-// TODO: does not work right!!
-bool check_collision(double ref_s,
-                     double ref_d,
-                     vector<Vehicle> other_cars,
-                     int steps) {
-
-    for(int i=0; i<other_cars.size(); i++) {
-        Vehicle veh = other_cars[i];
-        if (abs(veh.d - ref_d) > 2) {
-            continue;
-        }
-        double veh_speed = sqrt(veh.vx * veh.vx + veh.vy * veh.vy);
-        double s_future = veh.s + steps * .02 * veh_speed;
-
-        if ((s_future > ref_s) && (s_future - ref_s < 30)) {
-            std::cout << "bad veh at d " << veh.d << std::endl;
-            return true;
-        }
-    }
-    return false;
-}
-
 double collision_dist(double ref_s,
                       double ref_d,
                       double ref_x,
@@ -186,7 +164,7 @@ double collision_dist(double ref_s,
 
     for(int i=0; i<other_cars.size(); i++) {
         Vehicle veh = other_cars[i];
-        if (abs(veh.d - ref_d) > 2) {
+        if (abs(veh.d - ref_d) > 2.2) {
             continue;
         }
         double veh_speed = sqrt(veh.vx * veh.vx + veh.vy * veh.vy);
@@ -215,31 +193,12 @@ vector<double> getTargetSpeedAndLane(double ref_s,
 
     double dist_tolerance = 40.0;
 
-    bool within_switch = false;
-    //if ((path_size > 2) && (abs(d_diff) / path_size > 2.8 / 50.0)) {
-    //    within_switch = true;
-    //}
-    
     int ref_lane = 2;
     if (ref_d < 4) {
-        if (ref_d > 3.5) {
-            within_switch = true;
-        }
         ref_lane = 0;
     }
     else if (ref_d < 8) {
-        if ((ref_d < 4.5) || (ref_d > 7.5)) {
-            within_switch = true;
-        }
         ref_lane = 1;
-    }
-    else if(ref_d < 8.5) {
-        within_switch = true;
-    }
-
-
-    if(within_switch && DEBUG) {
-        std::cout << " ** in switch" << std::endl;
     }
 
     // FST to decide target lane
@@ -276,99 +235,65 @@ vector<double> getTargetSpeedAndLane(double ref_s,
     }
 
 
-    // if we are in the middle of a lane change, continue lan change
-    if (within_switch) {
-        slower = true;
-        if (ref_d > 2.5 && ref_d < 5.5) {
-            if (d_diff > 0) {
-                if (col_dist[1] > dist_tolerance) {
-                    target_lane = 1;
-                    slower = false;
-                }
-            }
-            else {
-                if (col_dist[0] > dist_tolerance) {
-                    target_lane = 0;
-                    slower = false;
-                }
-            }
-        }
-        else if (ref_d > 6.5 && ref_d < 9.5) {
-            if (d_diff > 0) {
-                if (col_dist[2] > dist_tolerance) {
-                    target_lane = 2;
-                    slower = false;
-                }
-            }
-            else {
-                if (col_dist[1] > dist_tolerance) {
-                    target_lane = 1;
-                    slower = false;
-                }
-            }
-        }
+    min_col_dist = col_dist[ref_lane];
+    if (col_dist[ref_lane] > dist_tolerance) {
+        target_lane = ref_lane;
     }
     else {
-
-        min_col_dist = col_dist[ref_lane];
-        if (col_dist[ref_lane] > dist_tolerance) {
-            target_lane = ref_lane;
-        }
-        else {
-            slower = true;
-            if (ref_lane > 0) {
-                if (ref_lane == 2) {
-                    if(col_dist[1] > dist_tolerance + 5) {
-                        target_lane = 1;
-                        slower = false;
-                    }
-                }
-                else {
-                    double best_dist;
-                    int cand_lane;
-                    if (col_dist[0] > col_dist[2]) {
-                        best_dist = col_dist[0];
-                        cand_lane = 0;
-                    }
-                    else {
-                        best_dist = col_dist[2];
-                        cand_lane = 2;
-                    }
-                    if(best_dist > dist_tolerance + 5) {
-                        target_lane = cand_lane;
-                        slower = false;
-                    }
-                }
-            }
-            else {
-                if (col_dist[1] > dist_tolerance + 5) {
+        slower = true;
+        if (ref_lane > 0) {
+            if (ref_lane == 2) {
+                if(col_dist[1] > dist_tolerance + 5) {
                     target_lane = 1;
                     slower = false;
                 }
             }
+            else {
+                double best_dist;
+                int cand_lane;
+                if (col_dist[0] > col_dist[2]) {
+                    best_dist = col_dist[0];
+                    cand_lane = 0;
+                }
+                else {
+                    best_dist = col_dist[2];
+                    cand_lane = 2;
+                }
+                if(best_dist > dist_tolerance + 5) {
+                    target_lane = cand_lane;
+                    slower = false;
+                }
+            }
         }
-
-        // don't change lanes when you are slow
-        if (ref_speed < 20) {
-            target_lane = ref_lane;
+        else {
+            if (col_dist[1] > dist_tolerance + 5) {
+                target_lane = 1;
+                slower = false;
+            }
         }
-
     }
 
-    // prefer middle lane
+    // don't change lanes when you are slow
+    if (ref_speed < 20) {
+        target_lane = ref_lane;
+    }
+
+    // prefer middle lane if there is enough space
     if (col_dist[1] > dist_tolerance + 10) {
         target_lane = 1;
         min_col_dist = col_dist[1];
+        slower = false;
     }
-
-
 
     // Adapt speed
     double target_vel = ref_speed;
     
     if (slower) {
-        if (min_col_dist < 15.0) {
-            target_vel -= 0.02 * (50 - path_size);
+        if (min_col_dist < 5.0) {
+            target_vel -= 0.15 * (50 - path_size);
+        }
+        else if (min_col_dist < 15) {
+            target_vel -= 0.05 * (50 - path_size);
         }
         else {
             double steps_to_col = (min_col_dist / ref_speed) / 0.02;
@@ -396,12 +321,5 @@ vector<double> getTargetSpeedAndLane(double ref_s,
     return {target_vel, target_lane};
 }
 
-
-void log_vector(vector<double> v) {
-    for (int i=0; i<v.size(); i++) {
-        std::cout << v[i] << " ";
-    }
-    std::cout << std::endl;
-}
 
 
