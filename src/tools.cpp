@@ -162,19 +162,14 @@ bool check_collision(double ref_s,
 
     for(int i=0; i<other_cars.size(); i++) {
         Vehicle veh = other_cars[i];
-        if (veh.d < ref_d - 2 || veh.d > ref_d + 2) {
-            continue;
-        }
-        if (abs(veh.s - ref_s) > 200) {
+        if (abs(veh.d - ref_d) > 2) {
             continue;
         }
         double veh_speed = sqrt(veh.vx * veh.vx + veh.vy * veh.vy);
         double s_future = veh.s + steps * .02 * veh_speed;
-        // if same lane but behind, no problemo
-        if (abs(veh.d - ref_d) < 2 && ref_s > s_future) {
-            continue;
-        }
-        if (s_future - ref_s < 30) {
+
+        if ((s_future > ref_s) && (s_future - ref_s < 30)) {
+            std::cout << "bad veh at d " << veh.d << std::endl;
             return true;
         }
     }
@@ -189,12 +184,12 @@ vector<double> getTargetSpeedAndLane(double ref_s,
                                      int path_size) {
 
     bool within_switch = false;
-    if (abs(d_diff) > 2.0) {
+    if (abs(d_diff) > 1.5) {
         within_switch = true;
+        std::cout << "  ** in switch" << std::endl;
     }
-    // TODO: also if previous path has large yaw we want to set this flag
-
-    double ref_lane = 2.0;
+    
+    double ref_lane = 2;
     if (ref_d < 4) {
         ref_lane = 0;
     }
@@ -230,11 +225,12 @@ vector<double> getTargetSpeedAndLane(double ref_s,
     else {
         // if we can continue in this lane, stay
         bool col = check_collision(ref_s,
-                                   ref_lane,
+                                   ref_lane * 4 + 2,
                                    other_cars,
                                    path_size);
         if (col) {
             slower = true;
+            /*
             if (ref_lane > 0) {
                 bool col = check_collision(ref_s,
                                            (ref_lane + 1) * 4 + 2,
@@ -264,6 +260,7 @@ vector<double> getTargetSpeedAndLane(double ref_s,
                     slower = false;
                 }
             }
+             */
         }
         
         // don't change lanes when you are slow
@@ -277,14 +274,15 @@ vector<double> getTargetSpeedAndLane(double ref_s,
     
     if (slower) {
         // TODO: this is not good
-        target_vel -= 0.02 * (50 - path_size);
+        target_vel -= 0.015 * (50 - path_size);
         target_vel = max(5.0, target_vel);
-        std::cout << "break" << std::endl;
+        std::cout << "   ** break" << std::endl;
         
     }
-    else if (target_vel < 49 && !within_switch) {
+    else if (target_vel < 50 && !within_switch) {
         target_vel += 0.19 * (50 - path_size);
         target_vel = min(49.5, target_vel);
+        std::cout << "   ** accell" << std::endl;
     }
     
     return {target_vel, target_lane};

@@ -107,14 +107,13 @@ int main() {
                 double car_speed = j[1]["speed"];
 
                 if (DEBUG) {
-                    std::cout << " CAR STATE: (x,y) , (s,d), yaw, speed"
+                    std::cout << "-----------------------------------" << std::endl;
+                    std::cout << " CAR STATE: (s,d), yaw, speed"
                               << std::endl;
-                    std::cout << " " << car_x
-                              << " " << car_y
-                              << "   " << car_s
+                    std::cout << car_s
                               << " " << car_d
-                              << "    " << car_yaw
-                              << "   " << car_speed << std::endl;
+                              << "     " << car_yaw
+                              << "     " << car_speed << std::endl;
                 }
 
                 // Previous path data given to the Planner
@@ -214,14 +213,14 @@ int main() {
 
 
                 if (DEBUG) {
-                    std::cout << "Ref velo: " << ref_speed << std::endl;
+                    std::cout << "  Ref speed: " << ref_speed << std::endl;
                 }
 
 
                 // compare ref_d and car_d to determine if we are changing lanes
                 vector<double> result = getTargetSpeedAndLane(ref_s,
                                                               ref_d,
-                                                              car_d - ref_d,
+                                                              ref_d - car_d,
                                                               ref_speed,
                                                               other_cars,
                                                               path_size);
@@ -230,7 +229,8 @@ int main() {
                 double target_lane = result[1];
 
                 if (DEBUG) {
-                    std::cout << "Target velo and lane: " << target_vel << " " << target_lane << std::endl;
+                    std::cout << "   Target speed: " << target_vel << std::endl;
+                    std::cout << "   Target lane:  " << target_lane << std::endl;
                 }
 
                 // generate smooth path
