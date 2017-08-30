@@ -43,19 +43,19 @@ void Path::generate(double target_lane,
     ptsy.push_back(curr_y);
 
 
-    // In Frenet add evenly 40m spaced points ahead of the
+    // In Frenet add somewhat evenly spaced points ahead of the
     // starting reference
-    vector<double> next_wp0 = getXY(car_s + 40,
+    vector<double> next_wp0 = getXY(car_s + 45,
                                     (2 + 4 * target_lane),
                                     maps_s,
                                     maps_x,
                                     maps_y);
-    vector<double> next_wp1 = getXY(car_s + 80,
+    vector<double> next_wp1 = getXY(car_s + 110,
                                     (2 + 4 * target_lane),
                                     maps_s,
                                     maps_x,
                                     maps_y);
-    vector<double> next_wp2 = getXY(car_s +120,
+    vector<double> next_wp2 = getXY(car_s + 175,
                                     (2 + 4 * target_lane),
                                     maps_s,
                                     maps_x,

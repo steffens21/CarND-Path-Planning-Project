@@ -213,17 +213,20 @@ int main() {
 
 
                 if (DEBUG) {
-                    std::cout << "  Ref speed: " << ref_speed << std::endl;
+                    std::cout << "   Ref speed: " << ref_speed << std::endl;
                 }
 
 
                 // compare ref_d and car_d to determine if we are changing lanes
                 vector<double> result = getTargetSpeedAndLane(ref_s,
                                                               ref_d,
+                                                              ref_x,
+                                                              ref_y,
                                                               ref_d - car_d,
                                                               ref_speed,
                                                               other_cars,
-                                                              path_size);
+                                                              path_size,
+                                                              DEBUG);
 
                 double target_vel = result[0];
                 double target_lane = result[1];

@@ -176,113 +176,221 @@ bool check_collision(double ref_s,
     return false;
 }
 
+double collision_dist(double ref_s,
+                      double ref_d,
+                      double ref_x,
+                      double ref_y,
+                      vector<Vehicle> other_cars,
+                      int steps) {
+    double min_dist = 999.0;
+
+    for(int i=0; i<other_cars.size(); i++) {
+        Vehicle veh = other_cars[i];
+        if (abs(veh.d - ref_d) > 2) {
+            continue;
+        }
+        double veh_speed = sqrt(veh.vx * veh.vx + veh.vy * veh.vy);
+        double s_future = veh.s + steps * .02 * veh_speed;
+        double veh_x_fut = veh.x + .02 * steps * veh.vx;
+        double veh_y_fut = veh.y + .02 * steps * veh.vy;
+
+        double dist = distance(ref_x, ref_y, veh_x_fut, veh_y_fut);
+
+        if ((s_future > ref_s - 8) && (dist < min_dist)) {
+            min_dist = dist;
+        }
+    }
+    return min_dist;
+}
+
 vector<double> getTargetSpeedAndLane(double ref_s,
                                      double ref_d,
+                                     double ref_x,
+                                     double ref_y,
                                      double d_diff,
                                      double ref_speed,
                                      vector<Vehicle> other_cars,
-                                     int path_size) {
+                                     int path_size,
+                                     bool DEBUG) {
+
+    double dist_tolerance = 40.0;
 
     bool within_switch = false;
-    if (abs(d_diff) > 1.5) {
-        within_switch = true;
-        std::cout << "  ** in switch" << std::endl;
-    }
+    //if ((path_size > 2) && (abs(d_diff) / path_size > 2.8 / 50.0)) {
+    //    within_switch = true;
+    //}
     
-    double ref_lane = 2;
+    int ref_lane = 2;
     if (ref_d < 4) {
+        if (ref_d > 3.5) {
+            within_switch = true;
+        }
         ref_lane = 0;
     }
     else if (ref_d < 8) {
+        if ((ref_d < 4.5) || (ref_d > 7.5)) {
+            within_switch = true;
+        }
         ref_lane = 1;
+    }
+    else if(ref_d < 8.5) {
+        within_switch = true;
+    }
+
+
+    if(within_switch && DEBUG) {
+        std::cout << " ** in switch" << std::endl;
     }
 
     // FST to decide target lane
 
     double target_lane = ref_lane;
     bool slower = false;
+    double min_col_dist;
+
+    double col_dist[3];
+    col_dist[0] = collision_dist(ref_s,
+                                 2,
+                                 ref_x,
+                                 ref_y,
+                                 other_cars,
+                                 path_size);
+    col_dist[1] = collision_dist(ref_s,
+                                 6,
+                                 ref_x,
+                                 ref_y,
+                                 other_cars,
+                                 path_size);
+    col_dist[2] = collision_dist(ref_s,
+                                 10,
+                                 ref_x,
+                                 ref_y,
+                                 other_cars,
+                                 path_size);
+
+    if(DEBUG) {
+        std::cout << "Lane: Dist" << std::endl;
+        std::cout << "   0: " << col_dist[0] << std::endl;
+        std::cout << "   1: " << col_dist[1] << std::endl;
+        std::cout << "   2: " << col_dist[2] << std::endl;
+    }
+
 
     // if we are in the middle of a lane change, continue lan change
     if (within_switch) {
-        if (ref_d > 2 && ref_d < 6) {
+        slower = true;
+        if (ref_d > 2.5 && ref_d < 5.5) {
             if (d_diff > 0) {
-                target_lane = 1;
+                if (col_dist[1] > dist_tolerance) {
+                    target_lane = 1;
+                    slower = false;
+                }
             }
             else {
-                target_lane = 0;
+                if (col_dist[0] > dist_tolerance) {
+                    target_lane = 0;
+                    slower = false;
+                }
             }
         }
-        else if (ref_d > 6 && ref_d < 10) {
+        else if (ref_d > 6.5 && ref_d < 9.5) {
             if (d_diff > 0) {
-                target_lane = 2;
+                if (col_dist[2] > dist_tolerance) {
+                    target_lane = 2;
+                    slower = false;
+                }
             }
             else {
-                target_lane = 1;
+                if (col_dist[1] > dist_tolerance) {
+                    target_lane = 1;
+                    slower = false;
+                }
             }
-
         }
     }
     else {
-        // if we can continue in this lane, stay
-        bool col = check_collision(ref_s,
-                                   ref_lane * 4 + 2,
-                                   other_cars,
-                                   path_size);
-        if (col) {
+
+        min_col_dist = col_dist[ref_lane];
+        if (col_dist[ref_lane] > dist_tolerance) {
+            target_lane = ref_lane;
+        }
+        else {
             slower = true;
-            /*
             if (ref_lane > 0) {
-                bool col = check_collision(ref_s,
-                                           (ref_lane + 1) * 4 + 2,
-                                           other_cars,
-                                           path_size);
-                if (!col) {
-                    target_lane = ref_lane - 1;
-                    slower = false;
+                if (ref_lane == 2) {
+                    if(col_dist[1] > dist_tolerance + 5) {
+                        target_lane = 1;
+                        slower = false;
+                    }
                 }
-                else if (ref_lane < 2) {
-                    bool col = check_collision(ref_s,
-                                               (ref_lane + 1) * 4 + 2,
-                                               other_cars,
-                                               path_size);
-                    if (!col) {
-                        target_lane = ref_lane + 1;
+                else {
+                    double best_dist;
+                    int cand_lane;
+                    if (col_dist[0] > col_dist[2]) {
+                        best_dist = col_dist[0];
+                        cand_lane = 0;
+                    }
+                    else {
+                        best_dist = col_dist[2];
+                        cand_lane = 2;
+                    }
+                    if(best_dist > dist_tolerance + 5) {
+                        target_lane = cand_lane;
+                        slower = false;
                     }
                 }
             }
             else {
-                bool col = check_collision(ref_s,
-                                           (ref_lane + 1) * 4 + 2,
-                                           other_cars,
-                                           path_size);
-                if (!col) {
-                    target_lane = ref_lane + 1;
+                if (col_dist[1] > dist_tolerance + 5) {
+                    target_lane = 1;
                     slower = false;
                 }
             }
-             */
         }
-        
+
         // don't change lanes when you are slow
         if (ref_speed < 20) {
             target_lane = ref_lane;
         }
+
     }
-    
+
+    // prefer middle lane
+    if (col_dist[1] > dist_tolerance + 10) {
+        target_lane = 1;
+        min_col_dist = col_dist[1];
+    }
+
+
+
     // Adapt speed
     double target_vel = ref_speed;
     
     if (slower) {
-        // TODO: this is not good
-        target_vel -= 0.015 * (50 - path_size);
-        target_vel = max(5.0, target_vel);
-        std::cout << "   ** break" << std::endl;
-        
+        if (min_col_dist < 15.0) {
+            target_vel -= 0.02 * (50 - path_size);
+        }
+        else {
+            double steps_to_col = (min_col_dist / ref_speed) / 0.02;
+            double col_steps_portion = (50 - path_size) / steps_to_col;
+            target_vel -= 0.025 * col_steps_portion;
+        }
+        target_vel = max(0.0, target_vel);
+        if(DEBUG) {
+            std::cout << " ** break" << std::endl;
+        }
     }
-    else if (target_vel < 50 && !within_switch) {
-        target_vel += 0.19 * (50 - path_size);
-        target_vel = min(49.5, target_vel);
-        std::cout << "   ** accell" << std::endl;
+    else if (target_vel < 50) {
+        target_vel += 0.185 * (50 - path_size);
+        target_vel = min(49.8, target_vel);
+        if (DEBUG) {
+            std::cout << " ** accell" << std::endl;
+        }
+    }
+
+    // slow accell at beginning
+    if (ref_speed < 2.0) {
+        target_vel = 3.0;
     }
     
     return {target_vel, target_lane};
