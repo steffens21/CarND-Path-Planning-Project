@@ -199,7 +199,7 @@ int main() {
                     other_cars.push_back(veh);
                 }
 
-                // determine which lane the car is in
+                // get state in frenet coordinates
                 vector<double> sd = getFrenet(ref_x,
                                               ref_y,
                                               ref_yaw,
@@ -209,15 +209,12 @@ int main() {
                 double ref_d = sd[1];
                 double ref_sd_yaw = sd[2];
 
-                //std::cout << "ref_sd_yaw " << ref_sd_yaw << std::endl;
-
-
                 if (DEBUG) {
                     std::cout << "   Ref speed: " << ref_speed << std::endl;
                 }
 
 
-                // compare ref_d and car_d to determine if we are changing lanes
+                // compute the target lane and the target speed
                 vector<double> result = getTargetSpeedAndLane(ref_s,
                                                               ref_d,
                                                               ref_x,
@@ -268,10 +265,7 @@ int main() {
 
                 msgJson["next_x"] = next_x_vals;
                 msgJson["next_y"] = next_y_vals;
-
-                // TODO: try to pass custom info to next iteration
-                //msgJson["fooflag"] =
-
+ 
                 auto msg = "42[\"control\","+ msgJson.dump()+"]";
 
                 // this_thread::sleep_for(chrono::milliseconds(1000));
