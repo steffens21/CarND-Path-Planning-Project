@@ -201,7 +201,7 @@ vector<double> getTargetSpeedAndLane(double ref_s,
         ref_lane = 1;
     }
 
-    // FST to decide target lane
+    // FSM to decide target lane
 
     double target_lane = ref_lane;
     bool slower = false;
